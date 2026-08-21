@@ -14,10 +14,10 @@ pip install -r requirements.txt
 
 Create `.env` in the project root:
 ```bash
+OPENROUTER_API_KEY=...   # OpenRouter LLMs + OpenRouter embeddings
 OPENAI_API_KEY=...       # FAISS embeddings + OpenAI models
 GEMINI_API_KEY=...       # Gemini models (GOOGLE_API_KEY is also accepted)
 TAVILY_API_KEY=...       # web_search tool
-OPENROUTER_API_KEY=...   # (optional) OpenRouter
 ```
 
 ## Data
@@ -92,6 +92,35 @@ python run.py \
 ```
 
 Models can be specified as `gemini/gemini-2.5-flash` (Google), `gpt-4o` / `o4-mini` (OpenAI), `openrouter/google/gemini-2.5-flash` (OpenRouter), or `Qwen/Qwen3-32B` with `--api_base` (self-hosted).
+
+### OpenRouter-Only Setup
+
+Agent, user simulator, validator, and embedding requests can all use one
+`OPENROUTER_API_KEY`. The paper defaults remain unchanged, so every model must
+be selected explicitly for an OpenRouter-only run:
+
+```bash
+python run.py \
+    --env all \
+    --task_type incre \
+    --model openrouter/google/gemini-2.5-flash \
+    --user_model openrouter/google/gemini-2.5-flash-lite \
+    --validation_model openrouter/google/gemini-2.5-flash \
+    --embedding_model openrouter/openai/text-embedding-3-small \
+    --agent_strategy tool-calling \
+    --tool_mode sql_value \
+    --metadata_access blocked \
+    --failure_feedback binary \
+    --schema_guidance identifier_free \
+    --num_trials 1
+```
+
+`sql_only` does not issue embedding requests. `sql_value` and `full` build a
+FAISS index on first use and cache it under the environment directory; later
+runs reuse that index. Non-default embedding models are included in checkpoint
+names. `web_search` is absent from both restricted modes. A `TAVILY_API_KEY` is
+still required for the paper `full` mode because Tavily is an external search
+service rather than an LLM or embedding provider.
 
 ### Tool-Control Experiments
 
@@ -218,6 +247,7 @@ must pass a replacement explicitly, such as
 | `--env` | `all` | `mimic_iv`, `mimic_iv_star`, `eicu`, `eicu_star`, `all`, `all_original` |
 | `--task_type` | `all` | `incre`, `adapt`, `all` |
 | `--model` | (required) | Agent model |
+| `--embedding_model` | `text-embedding-3-large` | Embedding model used by `sql_value` and `full` |
 | `--agent_strategy` | (required) | `tool-calling` |
 | `--temperature` | `0.0` | Agent sampling temperature |
 | `--user_model` | `gemini/gemini-2.0-flash` | User simulator model |

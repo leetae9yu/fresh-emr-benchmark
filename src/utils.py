@@ -328,7 +328,7 @@ def get_completion(model: str, messages: List[Dict[str, Any]], temperature: floa
             response_format=response_format,
             n=n
         )
-    elif is_supported_reasoning_llm(model):
+    elif is_supported_reasoning_llm(parse_model_name(model)):
         res = completion(
             messages=messages,
             model=model,
@@ -396,7 +396,12 @@ def get_action(model: str, messages: List[Dict[str, Any]], temperature: float,
                 next_message = gemini_parse_tool_calls(content)
                 content = next_message.get("content") or ""
 
-            if 'qwen' in model.lower():
+            if (
+                'qwen' in model.lower()
+                and content
+                and '<tool_call>' in content
+                and not next_message.get("tool_calls")
+            ):
                 next_message = qwen_parse_tool_calls(content)
 
             if next_message.get("tool_calls") and len(next_message["tool_calls"]) > 0 and next_message["tool_calls"][0]["function"] is not None:
@@ -549,9 +554,14 @@ def get_ckpt_name(config: Namespace, add_time: bool = True) -> str:
     if experiment_values != ("full", "allowed", "detailed", "benchmark"):
         experiment_part = "_experiment-" + "-".join(experiment_values)
 
+    embedding_model = getattr(config, "embedding_model", "text-embedding-3-large")
+    embedding_part = ""
+    if embedding_model != "text-embedding-3-large":
+        embedding_part = "_embedding-" + parse_model_name(embedding_model)
+
     time_part = "_" + datetime.now().strftime("%Y%m%d%H%M%S") if add_time else ""
     
-    return agent_part + "_" + task_part + "_" + user_part + experiment_part + time_part
+    return agent_part + "_" + task_part + "_" + user_part + experiment_part + embedding_part + time_part
 
 
 def load_results(config: Namespace, idx: List[str]) -> List[EnvRunResult]:

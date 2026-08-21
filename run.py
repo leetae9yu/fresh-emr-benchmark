@@ -48,6 +48,7 @@ def parse_arguments() -> Namespace:
     parser.add_argument("--env", type=str, default="all", choices=["mimic_iv", "mimic_iv_star", "eicu", "eicu_star", "all", "all_original"], help="Environment name for fetching user instructions")
     parser.add_argument("--task_type", type=str, default="all", choices=["incre", "adapt", "all"], help="Task type to use")
     parser.add_argument("--model", type=str, required=True, help="The agent model to use")
+    parser.add_argument("--embedding_model", type=str, default="text-embedding-3-large", help="Embedding model for value similarity search")
     parser.add_argument("--api_base", type=str, default=None, help="The API base to use")
     parser.add_argument("--agent_strategy", type=str, required=True, choices=["tool-calling"], help="The agent strategy to use")
     parser.add_argument("--temperature", type=float, default=0.0, help="Sampling temperature for the action model")
@@ -75,7 +76,10 @@ def parse_arguments() -> Namespace:
 
 def run(config: Namespace):
 
-    if any(x in config.model.lower() for x in ("llama", "qwen", "gpt-oss")):
+    if (
+        not config.model.lower().startswith("openrouter/")
+        and any(x in config.model.lower() for x in ("llama", "qwen", "gpt-oss"))
+    ):
         assert config.api_base is not None, f"api_base is required for {config.model}"
 
     if config.task_type == "all":
@@ -134,6 +138,7 @@ def _run_single(config: Namespace):
             user_strategy=config.user_strategy,
             user_model=config.user_model,
             user_temperature=config.user_temperature,
+            embedding_model=config.embedding_model,
             api_base=config.api_base,
             experiment=experiment,
         )
@@ -214,6 +219,7 @@ def _run_single(config: Namespace):
                         user_strategy=config.user_strategy,
                         user_model=config.user_model,
                         user_temperature=config.user_temperature,
+                        embedding_model=config.embedding_model,
                         api_base=config.api_base,
                         task_index=str(task_idx),
                         retry_reason=retry_reason,

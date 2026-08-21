@@ -440,7 +440,8 @@ def is_supported_gemini_llm(model: str) -> bool:
         'gemini/gemini-2.5-flash',
         'gemini/gemini-2.5-flash-lite',
         'gemini/gemini-2.5-flash-preview-09-2025',
-        'gemini/gemini-2.5-flash-lite-preview-09-2025'
+        'gemini/gemini-2.5-flash-lite-preview-09-2025',
+        'gemini/gemini-3.5-flash-lite'
     ]
     return model in supported_models
 
@@ -538,9 +539,19 @@ def get_ckpt_name(config: Namespace, add_time: bool = True) -> str:
     else:
         user_part = f"user-{config.user_strategy}-{user_model_name}-{config.user_temperature}"
 
+    experiment_values = (
+        getattr(config, "tool_mode", "full"),
+        getattr(config, "metadata_access", "allowed"),
+        getattr(config, "failure_feedback", "detailed"),
+        getattr(config, "schema_guidance", "benchmark"),
+    )
+    experiment_part = ""
+    if experiment_values != ("full", "allowed", "detailed", "benchmark"):
+        experiment_part = "_experiment-" + "-".join(experiment_values)
+
     time_part = "_" + datetime.now().strftime("%Y%m%d%H%M%S") if add_time else ""
     
-    return agent_part + "_" + task_part + "_" + user_part + time_part
+    return agent_part + "_" + task_part + "_" + user_part + experiment_part + time_part
 
 
 def load_results(config: Namespace, idx: List[str]) -> List[EnvRunResult]:
@@ -565,7 +576,7 @@ def load_results(config: Namespace, idx: List[str]) -> List[EnvRunResult]:
                 prev_results.append(json.loads(line))
     print(f"Loading previous results from {filepath}")
 
-    if config.env == "all":
+    if config.env in {"all", "all_original"}:
         filtered_results = [r for r in prev_results if r['task_type'] == config.task_type and r['task_id'] in idx]
     else:
         filtered_results = [r for r in prev_results if r['task_type'] == config.task_type and r['task_id'] in idx and r['db_id'] == config.env]

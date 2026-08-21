@@ -1,4 +1,3 @@
-import json
 import os
 from typing import assert_never
 
@@ -6,12 +5,12 @@ from sqlalchemy import create_engine
 from sqlalchemy.pool import NullPool
 
 from src.envs.base import Env
-from src.envs.mimic_iv_star.tools.column_search import ColumnSearch
-from src.envs.mimic_iv_star.tools.sql_execute import SQLExecute
-from src.envs.mimic_iv_star.tools.table_search import TableSearch
-from src.envs.mimic_iv_star.tools.value_similarity_search import ValueSimilaritySearch
-from src.envs.mimic_iv_star.tools.value_substring_search import ValueSubstringSearch
-from src.envs.mimic_iv_star.tools.web_search import WebSearch
+from src.envs.eicu_star.tools.column_search import ColumnSearch
+from src.envs.eicu_star.tools.sql_execute import SQLExecute
+from src.envs.eicu_star.tools.table_search import TableSearch
+from src.envs.eicu_star.tools.value_similarity_search import ValueSimilaritySearch
+from src.envs.eicu_star.tools.value_substring_search import ValueSubstringSearch
+from src.envs.eicu_star.tools.web_search import WebSearch
 from src.experiment import (
     DEFAULT_EXPERIMENT_CONFIG,
     ExperimentConfig,
@@ -19,10 +18,15 @@ from src.experiment import (
     ToolMode,
     open_sqlite_database,
 )
-from src.types import Task
+from src.gt_conversion import (
+    DatabaseSchema,
+    derive_original_tasks,
+    verify_original_database,
+)
 from src.utils import initialize_vector_store, parse_model_name
 
-class MimicIVStarEnv(Env):
+
+class eICUEnv(Env):
     def __init__(
         self,
         user_strategy: str,
@@ -31,8 +35,8 @@ class MimicIVStarEnv(Env):
         task_type: str,
         task_index: str | None,
         api_base: str | None = None,
-        db_id: str = 'mimic_iv_star',
-        db_path: str = "src/envs/mimic_iv_star/mimic_iv_star.sqlite",
+        db_id: str = "eicu",
+        db_path: str = "data/eicu.sqlite",
         embedding_model: str = "text-embedding-3-large",
         retry_reason: list[str] | None = None,
         experiment: ExperimentConfig = DEFAULT_EXPERIMENT_CONFIG,
@@ -40,32 +44,52 @@ class MimicIVStarEnv(Env):
         self.db_id = db_id
         self.experiment = experiment
         assert os.path.exists(db_path), f"Database file does not exist: {db_path}"
+        verify_original_database(db_path, DatabaseSchema.EICU)
         self.folder_path = os.path.dirname(__file__)
-        if user_strategy == 'human':
+
+        if user_strategy == "human":
             tasks = None
         else:
-            with open(os.path.join(self.folder_path, f"eval_{task_type}.jsonl"), "r") as f:
-                tasks = [Task(**kwargs) for kwargs in json.load(f)]
+            star_folder = os.path.join(
+                os.path.dirname(self.folder_path),
+                "eicu_star",
+            )
+            tasks = list(
+                derive_original_tasks(
+                    os.path.join(star_folder, f"eval_{task_type}.jsonl"),
+                    DatabaseSchema.EICU,
+                    db_id,
+                )
+            )
 
         from ..rules import rules
+
         if task_type == "incre":
             from ..rules import task_type_incremental
-            rules += '\n\n' + task_type_incremental
+
+            rules += "\n\n" + task_type_incremental
         elif task_type == "adapt":
             from ..rules import task_type_adaptive
-            rules += '\n\n' + task_type_adaptive
+
+            rules += "\n\n" + task_type_adaptive
+
         match experiment.schema_guidance:
-            case SchemaGuidance.BENCHMARK:
-                with open(os.path.join(self.folder_path, "db_rules.txt"), "r") as f:
-                    rules += '\n\n' + f.read()
             case SchemaGuidance.HIDDEN:
                 pass
+            case SchemaGuidance.BENCHMARK:
+                raise ValueError(
+                    "Original-schema environments require "
+                    "--schema_guidance hidden"
+                )
             case unreachable:
                 assert_never(unreachable)
 
         engine = create_engine(
             "sqlite://",
-            creator=lambda: open_sqlite_database(db_path, experiment.metadata_access),
+            creator=lambda: open_sqlite_database(
+                db_path,
+                experiment.metadata_access,
+            ),
             poolclass=NullPool,
         )
         sql_execute = SQLExecute(
@@ -79,18 +103,28 @@ class MimicIVStarEnv(Env):
                 table_search = TableSearch(engine=engine)
                 column_search = ColumnSearch(engine=engine)
                 value_substring_search = ValueSubstringSearch(engine=engine)
-                faiss_path = 'src/envs/mimic_iv_star/faiss_index_mimic_iv_star-'+parse_model_name(embedding_model)
+                faiss_path = (
+                    "src/envs/eicu/faiss_index_eicu-"
+                    + parse_model_name(embedding_model)
+                )
                 columns_to_retrieve = {
-                    "hospitaladmissions": ["admissiontype", "admitsource", "dischargedestination"],
-                    "diagnosiscodes": ["description"],
-                    "procedurecodes": ["description"],
-                    "medicationorders": ["medicationname"],
-                    "clinicalitemtypes": ["itemname"],
-                    "labtesttypes": ["itemname"],
-                    "microbiologyresults": ["specimentype", "testname", "organismname"]
+                    "allergy": ["drugname", "allergyname"],
+                    "diagnosis": ["diagnosisname"],
+                    "intakeoutput": ["celllabel"],
+                    "lab": ["labname"],
+                    "medication": ["drugname"],
+                    "patient": ["ethnicity", "hospitaladmitsource"],
+                    "treatment": ["treatmentname"],
                 }
-                vector_store = initialize_vector_store(engine, embedding_model, faiss_path, columns_to_retrieve)
-                value_similarity_search = ValueSimilaritySearch(vector_store=vector_store)
+                vector_store = initialize_vector_store(
+                    engine,
+                    embedding_model,
+                    faiss_path,
+                    columns_to_retrieve,
+                )
+                value_similarity_search = ValueSimilaritySearch(
+                    vector_store=vector_store
+                )
                 web_search = WebSearch()
                 tools = [
                     table_search,
@@ -114,5 +148,5 @@ class MimicIVStarEnv(Env):
             task_index=task_index,
             rule=rules,
             api_base=api_base,
-            retry_reason=retry_reason
+            retry_reason=retry_reason,
         )

@@ -1,18 +1,26 @@
-import os
 import json
-from typing import Optional, List
-from src.types import Task
-from src.envs.base import Env
-from src.envs.eicu_star.tools.table_search import TableSearch
-from src.envs.eicu_star.tools.column_search import ColumnSearch
-from src.envs.eicu_star.tools.sql_execute import SQLExecute
-from src.envs.eicu_star.tools.value_substring_search import ValueSubstringSearch
-from src.envs.eicu_star.tools.value_similarity_search import ValueSimilaritySearch
-from src.envs.eicu_star.tools.web_search import WebSearch
-from src.utils import initialize_vector_store, parse_model_name
-import sqlite3
+import os
+from typing import assert_never
+
 from sqlalchemy import create_engine
 from sqlalchemy.pool import NullPool
+
+from src.envs.base import Env
+from src.envs.eicu_star.tools.column_search import ColumnSearch
+from src.envs.eicu_star.tools.sql_execute import SQLExecute
+from src.envs.eicu_star.tools.table_search import TableSearch
+from src.envs.eicu_star.tools.value_similarity_search import ValueSimilaritySearch
+from src.envs.eicu_star.tools.value_substring_search import ValueSubstringSearch
+from src.envs.eicu_star.tools.web_search import WebSearch
+from src.experiment import (
+    DEFAULT_EXPERIMENT_CONFIG,
+    ExperimentConfig,
+    SchemaGuidance,
+    ToolMode,
+    open_sqlite_database,
+)
+from src.types import Task
+from src.utils import initialize_vector_store, parse_model_name
 
 class eICUStarEnv(Env):
     def __init__(
@@ -21,14 +29,16 @@ class eICUStarEnv(Env):
         user_model: str,
         user_temperature: float,
         task_type: str,
-        task_index: str,
-        api_base: Optional[str] = None,
+        task_index: str | None,
+        api_base: str | None = None,
         db_id: str = 'eicu_star',
         db_path: str = "src/envs/eicu_star/eicu_star.sqlite",
         embedding_model: str = "text-embedding-3-large",
-        retry_reason: Optional[List[str]] = None
-    ):
+        retry_reason: list[str] | None = None,
+        experiment: ExperimentConfig = DEFAULT_EXPERIMENT_CONFIG,
+    ) -> None:
         self.db_id = db_id
+        self.experiment = experiment
         assert os.path.exists(db_path), f"Database file does not exist: {db_path}"
         self.folder_path = os.path.dirname(__file__)
         if user_strategy == 'human':
@@ -44,37 +54,54 @@ class eICUStarEnv(Env):
         elif task_type == "adapt":
             from ..rules import task_type_adaptive
             rules += '\n\n' + task_type_adaptive
-        with open(os.path.join(self.folder_path, "db_rules.txt"), "r") as f:
-            db_rule = f.read()
-        rules += '\n\n' + db_rule
+        match experiment.schema_guidance:
+            case SchemaGuidance.BENCHMARK:
+                with open(os.path.join(self.folder_path, "db_rules.txt"), "r") as f:
+                    rules += '\n\n' + f.read()
+            case SchemaGuidance.HIDDEN:
+                pass
+            case unreachable:
+                assert_never(unreachable)
 
-        engine = create_engine("sqlite://", creator=lambda: sqlite3.connect(f"file:{db_path}?immutable=1", uri=True), poolclass=NullPool)
-        table_search = TableSearch(engine=engine)
-        column_search = ColumnSearch(engine=engine)
-        sql_execute = SQLExecute(engine=engine)
-        value_substring_search = ValueSubstringSearch(engine=engine)
-        faiss_path = 'src/envs/eicu_star/faiss_index_eicu_star-'+parse_model_name(embedding_model)
-        columns_to_retrieve = {
-            "allergy_reaction": ["drug_name", "allergy_name"],
-            "condition": ["condition_name"],
-            "fluid_balance": ["fluid_label"],
-            "lab": ["lab_name"],
-            "prescription": ["drug_name"],
-            "icupatient": ["ethnicity", "hospital_admission_source"],
-            "treatment": ["treatment_name"]            
-        }
-        vector_store = initialize_vector_store(engine, embedding_model, faiss_path, columns_to_retrieve)
-        value_similarity_search = ValueSimilaritySearch(vector_store=vector_store)
-        web_search = WebSearch()
-
-        tools = [
-            table_search,
-            column_search,
-            sql_execute,
-            value_substring_search,
-            value_similarity_search,
-            web_search
-        ]
+        engine = create_engine(
+            "sqlite://",
+            creator=lambda: open_sqlite_database(db_path, experiment.metadata_access),
+            poolclass=NullPool,
+        )
+        sql_execute = SQLExecute(
+            engine=engine,
+            failure_feedback=experiment.failure_feedback,
+        )
+        match experiment.tool_mode:
+            case ToolMode.SQL_ONLY:
+                tools = [sql_execute]
+            case ToolMode.FULL:
+                table_search = TableSearch(engine=engine)
+                column_search = ColumnSearch(engine=engine)
+                value_substring_search = ValueSubstringSearch(engine=engine)
+                faiss_path = 'src/envs/eicu_star/faiss_index_eicu_star-'+parse_model_name(embedding_model)
+                columns_to_retrieve = {
+                    "allergy_reaction": ["drug_name", "allergy_name"],
+                    "condition": ["condition_name"],
+                    "fluid_balance": ["fluid_label"],
+                    "lab": ["lab_name"],
+                    "prescription": ["drug_name"],
+                    "icupatient": ["ethnicity", "hospital_admission_source"],
+                    "treatment": ["treatment_name"]
+                }
+                vector_store = initialize_vector_store(engine, embedding_model, faiss_path, columns_to_retrieve)
+                value_similarity_search = ValueSimilaritySearch(vector_store=vector_store)
+                web_search = WebSearch()
+                tools = [
+                    table_search,
+                    column_search,
+                    sql_execute,
+                    value_substring_search,
+                    value_similarity_search,
+                    web_search,
+                ]
+            case unreachable:
+                assert_never(unreachable)
 
         super().__init__(
             tools=tools,

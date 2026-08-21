@@ -5,8 +5,12 @@ from sqlalchemy.exc import SQLAlchemyError
 from pydantic import BaseModel, Field
 from func_timeout import func_timeout, FunctionTimedOut
 
+from src.experiment import FailureFeedback, format_sql_failure
+
+
 class SQLExecute(BaseModel):
     engine: Engine = Field(..., description="The engine to execute queries on.")
+    failure_feedback: FailureFeedback = FailureFeedback.DETAILED
 
     class Config:
         arbitrary_types_allowed = True
@@ -32,10 +36,15 @@ class SQLExecute(BaseModel):
                     f"\n\nNote: There are {additional} results not shown (out of {n} total results)."
                 )
         except FunctionTimedOut:
-            base_response = f"Error: Query execution timed out after {timeout} seconds"
+            base_response = format_sql_failure(
+                self.failure_feedback,
+                f"Error: Query execution timed out after {timeout} seconds",
+            )
         except SQLAlchemyError as e:
-            """Format the error message"""
-            base_response = f"Error: {e}"
+            base_response = format_sql_failure(
+                self.failure_feedback,
+                f"Error: {e}",
+            )
         return base_response
 
     @staticmethod

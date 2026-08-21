@@ -1,6 +1,9 @@
 import logging
 from typing import Optional, List
+
 from src.envs.base import Env
+from src.experiment import DEFAULT_EXPERIMENT_CONFIG, ExperimentConfig
+
 
 def get_env(
     env_name: str,
@@ -10,7 +13,8 @@ def get_env(
     user_temperature: float = 1.0,
     api_base: Optional[str] = None,
     task_index: Optional[str] = None,
-    retry_reason: Optional[List[str]] = None
+    retry_reason: Optional[List[str]] = None,
+    experiment: ExperimentConfig = DEFAULT_EXPERIMENT_CONFIG,
 ) -> Env:
     if env_name == "mimic_iv_star":
         from src.envs.mimic_iv_star import MimicIVStarEnv
@@ -21,7 +25,20 @@ def get_env(
             task_type=task_type,
             task_index=task_index,
             api_base=api_base,
-            retry_reason=retry_reason
+            retry_reason=retry_reason,
+            experiment=experiment,
+        )
+    elif env_name == "mimic_iv":
+        from src.envs.mimic_iv import MimicIVEnv
+        return MimicIVEnv(
+            user_strategy=user_strategy,
+            user_model=user_model,
+            user_temperature=user_temperature,
+            task_type=task_type,
+            task_index=task_index,
+            api_base=api_base,
+            retry_reason=retry_reason,
+            experiment=experiment,
         )
     elif env_name == "eicu_star":
         from src.envs.eicu_star import eICUStarEnv
@@ -32,7 +49,20 @@ def get_env(
             task_type=task_type,
             task_index=task_index,
             api_base=api_base,
-            retry_reason=retry_reason
+            retry_reason=retry_reason,
+            experiment=experiment,
+        )
+    elif env_name == "eicu":
+        from src.envs.eicu import eICUEnv
+        return eICUEnv(
+            user_strategy=user_strategy,
+            user_model=user_model,
+            user_temperature=user_temperature,
+            task_type=task_type,
+            task_index=task_index,
+            api_base=api_base,
+            retry_reason=retry_reason,
+            experiment=experiment,
         )
     else:
         raise ValueError(f"Unknown environment: {env_name}")

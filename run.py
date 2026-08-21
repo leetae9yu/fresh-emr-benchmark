@@ -19,6 +19,13 @@ import json
 
 from src.envs import get_env
 from src.agent_factory import get_agent
+from src.experiment import (
+    ExperimentConfig,
+    FailureFeedback,
+    MetadataAccess,
+    SchemaGuidance,
+    ToolMode,
+)
 from src.types import EnvRunResult, CostInfo, ValidationResult
 from src.utils import save_checkpoint, display_metrics, update_checkpoint, load_results, dummy_error_result, get_ckpt_name
 from validator import user_validator
@@ -38,7 +45,7 @@ def _parse_validation_explanation(reason: str) -> str | None:
 
 def parse_arguments() -> Namespace:
     parser = ArgumentParser()
-    parser.add_argument("--env", type=str, default="all", choices=["mimic_iv_star", "eicu_star", "all"], help="Environment name for fetching user instructions")
+    parser.add_argument("--env", type=str, default="all", choices=["mimic_iv", "mimic_iv_star", "eicu", "eicu_star", "all", "all_original"], help="Environment name for fetching user instructions")
     parser.add_argument("--task_type", type=str, default="all", choices=["incre", "adapt", "all"], help="Task type to use")
     parser.add_argument("--model", type=str, required=True, help="The agent model to use")
     parser.add_argument("--api_base", type=str, default=None, help="The API base to use")
@@ -59,6 +66,10 @@ def parse_arguments() -> Namespace:
     parser.add_argument("--validation_model", type=str, default='gemini/gemini-2.5-flash', help="The validation model to use")
     parser.add_argument("--verbose", action="store_true", help="Print user-agent conversations during execution")
     parser.add_argument("--validation_trials", type=int, default=1, help="Number of validation trials")
+    parser.add_argument("--tool_mode", choices=[mode.value for mode in ToolMode], default=ToolMode.FULL.value, help="Tool exposure mode")
+    parser.add_argument("--metadata_access", choices=[mode.value for mode in MetadataAccess], default=MetadataAccess.ALLOWED.value, help="SQLite metadata access policy")
+    parser.add_argument("--failure_feedback", choices=[mode.value for mode in FailureFeedback], default=FailureFeedback.DETAILED.value, help="SQL failure response policy")
+    parser.add_argument("--schema_guidance", choices=[mode.value for mode in SchemaGuidance], default=SchemaGuidance.BENCHMARK.value, help="Database-specific prompt guidance")
     return parser.parse_args()
 
 
@@ -82,10 +93,19 @@ def run(config: Namespace):
 
 
 def _run_single(config: Namespace):
+    experiment = ExperimentConfig(
+        tool_mode=ToolMode(config.tool_mode),
+        metadata_access=MetadataAccess(config.metadata_access),
+        failure_feedback=FailureFeedback(config.failure_feedback),
+        schema_guidance=SchemaGuidance(config.schema_guidance),
+    )
 
     if config.env == "all":
         envs_to_run = ["mimic_iv_star", "eicu_star"]
         print("Running all environments: mimic_iv_star, eicu_star")
+    elif config.env == "all_original":
+        envs_to_run = ["mimic_iv", "eicu"]
+        print("Running all original environments: mimic_iv, eicu")
     else:
         envs_to_run = [config.env]
 
@@ -94,6 +114,13 @@ def _run_single(config: Namespace):
     os.makedirs(config.result_dir, exist_ok=True)
     
     print(f"Loading user with strategy: {config.user_strategy}")
+    print(
+        "Experiment controls: "
+        f"tools={experiment.tool_mode.value}, "
+        f"metadata={experiment.metadata_access.value}, "
+        f"failure_feedback={experiment.failure_feedback.value}, "
+        f"schema_guidance={experiment.schema_guidance.value}"
+    )
     
     # Initialize environments and agents for each env
     envs = {}
@@ -107,7 +134,8 @@ def _run_single(config: Namespace):
             user_strategy=config.user_strategy,
             user_model=config.user_model,
             user_temperature=config.user_temperature,
-            api_base=config.api_base
+            api_base=config.api_base,
+            experiment=experiment,
         )
         agents[env_name] = get_agent(
             tools_info=envs[env_name].tools_info,
@@ -137,7 +165,7 @@ def _run_single(config: Namespace):
     results = load_results(config, idx=[str(i) for i in all_task_ids])
     
     # Build task list to run
-    if config.env == "all":
+    if config.env in {"all", "all_original"}:
         idx_to_run = []
         for env_name in envs_to_run:
             env_task_pairs = [(env_name, task_id) for task_id in env_task_indices[env_name]]
@@ -188,7 +216,8 @@ def _run_single(config: Namespace):
                         user_temperature=config.user_temperature,
                         api_base=config.api_base,
                         task_index=str(task_idx),
-                        retry_reason=retry_reason
+                        retry_reason=retry_reason,
+                        experiment=experiment,
                     )
 
                     response = agents[current_env_name].run(

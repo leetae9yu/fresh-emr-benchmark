@@ -30,6 +30,33 @@ TOOL_CALLING_INSTRUCTION = """Instruction:
 
 TOOL_SETS = ['table_search', 'column_search', 'sql_execute', 'value_substring_search', 'value_similarity_search', 'web_search']
 
+
+def _sql_only_instruction() -> str:
+    disabled_tool_names = {
+        "table_search",
+        "column_search",
+        "value_substring_search",
+        "value_similarity_search",
+        "web_search",
+    }
+    disabled_instruction_prefixes = (
+        "- Use table_search and column_search",
+        "- Use value_substring_search and value_similarity_search",
+        "- Clinical concepts ",
+        "- To search for or verify clinical knowledge ",
+    )
+    retained_lines = []
+    for line in TOOL_CALLING_INSTRUCTION.splitlines():
+        mentions_disabled_tool = any(
+            line.strip().startswith(f"- {tool_name}:")
+            for tool_name in disabled_tool_names
+        )
+        directs_disabled_tool = line.startswith(disabled_instruction_prefixes)
+        if not mentions_disabled_tool and not directs_disabled_tool:
+            retained_lines.append(line)
+    return "\n".join(retained_lines)
+
+
 class ToolCallingAgent(Agent):
     def __init__(
         self,
@@ -46,7 +73,16 @@ class ToolCallingAgent(Agent):
         self.api_base = api_base
         self.temperature = temperature
         self.verbose = verbose
-        self.instruction = TOOL_CALLING_INSTRUCTION + '\n' + self.rule
+        tool_names = {
+            tool["function"]["name"]
+            for tool in self.tools_info
+        }
+        instruction = (
+            _sql_only_instruction()
+            if tool_names == {"sql_execute"}
+            else TOOL_CALLING_INSTRUCTION
+        )
+        self.instruction = instruction + '\n' + self.rule
     def run(
         self, env: Env, task_index: Optional[int] = None, max_num_steps: int = 30, agent_timeout: int = 600
     ) -> AgentRunResult:

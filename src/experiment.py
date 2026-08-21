@@ -7,6 +7,7 @@ from typing import Final, assert_never
 class ToolMode(StrEnum):
     FULL = "full"
     SQL_ONLY = "sql_only"
+    SQL_VALUE = "sql_value"
 
 
 class MetadataAccess(StrEnum):
@@ -21,6 +22,7 @@ class FailureFeedback(StrEnum):
 
 class SchemaGuidance(StrEnum):
     BENCHMARK = "benchmark"
+    IDENTIFIER_FREE = "identifier_free"
     HIDDEN = "hidden"
 
 

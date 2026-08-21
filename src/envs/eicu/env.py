@@ -74,13 +74,17 @@ class eICUEnv(Env):
             rules += "\n\n" + task_type_adaptive
 
         match experiment.schema_guidance:
+            case SchemaGuidance.BENCHMARK:
+                with open(os.path.join(self.folder_path, "db_rules.txt"), "r") as f:
+                    rules += "\n\n" + f.read()
+            case SchemaGuidance.IDENTIFIER_FREE:
+                with open(
+                    "src/ablation_prompts/eicu/db_rules.txt",
+                    "r",
+                ) as f:
+                    rules += "\n\n" + f.read()
             case SchemaGuidance.HIDDEN:
                 pass
-            case SchemaGuidance.BENCHMARK:
-                raise ValueError(
-                    "Original-schema environments require "
-                    "--schema_guidance hidden"
-                )
             case unreachable:
                 assert_never(unreachable)
 
@@ -99,6 +103,31 @@ class eICUEnv(Env):
         match experiment.tool_mode:
             case ToolMode.SQL_ONLY:
                 tools = [sql_execute]
+            case ToolMode.SQL_VALUE:
+                faiss_path = (
+                    "src/envs/eicu/faiss_index_eicu-"
+                    + parse_model_name(embedding_model)
+                )
+                columns_to_retrieve = {
+                    "allergy": ["drugname", "allergyname"],
+                    "diagnosis": ["diagnosisname"],
+                    "intakeoutput": ["celllabel"],
+                    "lab": ["labname"],
+                    "medication": ["drugname"],
+                    "patient": ["ethnicity", "hospitaladmitsource"],
+                    "treatment": ["treatmentname"],
+                }
+                vector_store = initialize_vector_store(
+                    engine,
+                    embedding_model,
+                    faiss_path,
+                    columns_to_retrieve,
+                )
+                value_similarity_search = ValueSimilaritySearch(
+                    vector_store=vector_store,
+                    schema_description=None,
+                )
+                tools = [sql_execute, value_similarity_search]
             case ToolMode.FULL:
                 table_search = TableSearch(engine=engine)
                 column_search = ColumnSearch(engine=engine)
@@ -123,7 +152,14 @@ class eICUEnv(Env):
                     columns_to_retrieve,
                 )
                 value_similarity_search = ValueSimilaritySearch(
-                    vector_store=vector_store
+                    vector_store=vector_store,
+                    schema_description=(
+                        "Supported columns: allergy: ['drugname', "
+                        "'allergyname'], diagnosis: ['diagnosisname'], "
+                        "intakeoutput: ['celllabel'], lab: ['labname'], "
+                        "medication: ['drugname'], patient: ['ethnicity', "
+                        "'hospitaladmitsource'], treatment: ['treatmentname']"
+                    ),
                 )
                 web_search = WebSearch()
                 tools = [

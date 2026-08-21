@@ -15,7 +15,7 @@ pip install -r requirements.txt
 Create `.env` in the project root:
 ```bash
 OPENAI_API_KEY=...       # FAISS embeddings + OpenAI models
-GOOGLE_API_KEY=...       # Gemini models
+GEMINI_API_KEY=...       # Gemini models (GOOGLE_API_KEY is also accepted)
 TAVILY_API_KEY=...       # web_search tool
 OPENROUTER_API_KEY=...   # (optional) OpenRouter
 ```
@@ -99,8 +99,9 @@ The default settings preserve the paper environment: all six tools are exposed,
 database-specific SQL guidance is included, SQLite metadata is available, and
 SQL errors are returned in detail.
 
-For the schema-prior experiment, expose only `sql_execute` and hide
-database-specific schema guidance:
+For a schema-prior experiment without external value grounding, expose only
+`sql_execute`, block SQLite catalog access, and use the identifier-free
+database guide:
 
 ```bash
 python run.py \
@@ -109,7 +110,7 @@ python run.py \
     --model gemini/gemini-2.5-flash \
     --agent_strategy tool-calling \
     --tool_mode sql_only \
-    --schema_guidance hidden \
+    --schema_guidance identifier_free \
     --metadata_access blocked \
     --failure_feedback binary \
     --num_trials 1 \
@@ -120,22 +121,70 @@ The experiment controls are independent:
 
 | Argument | Values | Behavior |
 |----------|--------|----------|
-| `--tool_mode` | `full`, `sql_only` | Expose the paper's six tools or only `sql_execute` |
+| `--tool_mode` | `full`, `sql_only`, `sql_value` | Expose the paper's six tools, only `sql_execute`, or SQL plus embedding-based value similarity |
 | `--metadata_access` | `allowed`, `blocked` | Allow or deny SQLite catalogs, PRAGMAs, and table-valued PRAGMAs |
 | `--failure_feedback` | `detailed`, `binary` | Return SQLite errors or the stable token `FAILED` |
-| `--schema_guidance` | `benchmark`, `hidden` | Include or omit database-specific SQL rules containing schema identifiers |
+| `--schema_guidance` | `benchmark`, `identifier_free`, `hidden` | Use the original/equivalent DB guide, a guide with identifier-bearing rules removed, or no DB-specific guide |
 
 Successful SQL queries return their result in both failure-feedback modes.
 `sql_only` skips FAISS initialization, so Gemini-only runs require only:
 
 ```env
-GOOGLE_API_KEY=...
+GEMINI_API_KEY=...
 ```
 
 `OPENAI_API_KEY` and `TAVILY_API_KEY` remain necessary only when the
 corresponding embedding and web-search tools are enabled in `full` mode.
+`sql_value` initializes only the FAISS value index and therefore needs the
+embedding provider key, but it does not expose table search, column search,
+substring search, or web search. Its tool description omits the supported
+table and column list so the ablation does not disclose schema identifiers.
 Checkpoint names include every non-default experiment control to prevent
 results from different cells being resumed or aggregated together.
+
+### Sixteen-Cell Motivation Experiment
+
+The motivation design crosses four binary factors:
+
+```text
+schema:             original / Star
+schema information: available / unavailable
+error feedback:     detailed / binary
+value similarity:   off / on
+```
+
+Use the following paired settings for schema information:
+
+| Condition | Metadata | Prompt guide |
+|-----------|----------|--------------|
+| Available | `allowed` | `benchmark` |
+| Unavailable | `blocked` | `identifier_free` |
+
+Use `--tool_mode sql_only` when value similarity is off and
+`--tool_mode sql_value` when it is on. Both modes exclude web search and the
+other paper tools. Select `mimic_iv`/`eicu` for original schemas and
+`mimic_iv_star`/`eicu_star` for renamed schemas.
+
+Example unavailable-information cell with value similarity enabled:
+
+```bash
+python run.py \
+    --env mimic_iv_star \
+    --task_type incre \
+    --model gemini/gemini-2.5-flash-lite \
+    --agent_strategy tool-calling \
+    --user_model gemini/gemini-2.5-flash-lite \
+    --tool_mode sql_value \
+    --metadata_access blocked \
+    --failure_feedback binary \
+    --schema_guidance identifier_free \
+    --num_trials 1
+```
+
+The checked-in Star `db_rules.txt` files remain unchanged for paper
+reproduction. Equivalent original-schema guides live beside the original
+environments. Modified ablation guides use the same generic filename under
+`src/ablation_prompts/`; file paths are never included in the model request.
 
 Run both original-schema databases for one condition with:
 
@@ -154,9 +203,8 @@ python run.py \
 ```
 
 `--env all` intentionally retains the paper default and runs only the two
-Star environments. Original environments require `--schema_guidance hidden`;
-there is no translated benchmark guidance that could leak original schema
-identifiers.
+Star environments. Original environments support both an identifier-equivalent
+`benchmark` guide and the same identifier-free ablation guide used for Star.
 
 The paper default still records `gemini/gemini-2.0-flash` as the simulator
 model for reproducibility, but Google has retired that endpoint. Current runs
@@ -184,10 +232,10 @@ must pass a replacement explicitly, such as
 | `--task_ids` | `None` | Specific task IDs (space-separated) |
 | `--api_base` | `None` | API base URL for self-hosted models |
 | `--verbose` | `false` | Print conversations during execution |
-| `--tool_mode` | `full` | Tool exposure: `full` or `sql_only` |
+| `--tool_mode` | `full` | Tool exposure: `full`, `sql_only`, or `sql_value` |
 | `--metadata_access` | `allowed` | SQLite metadata policy: `allowed` or `blocked` |
 | `--failure_feedback` | `detailed` | SQL failure response: `detailed` or `binary` |
-| `--schema_guidance` | `benchmark` | Database-specific prompt guidance: `benchmark` or `hidden` |
+| `--schema_guidance` | `benchmark` | Database-specific prompt guidance: `benchmark`, `identifier_free`, or `hidden` |
 
 ## Evaluation
 

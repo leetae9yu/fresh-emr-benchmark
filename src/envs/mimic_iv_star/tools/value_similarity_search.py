@@ -5,6 +5,13 @@ from pydantic import BaseModel, Field
 
 class ValueSimilaritySearch(BaseModel):
     vector_store: FAISS = Field(..., description="The vector store for similarity search.")
+    schema_description: str | None = (
+        "Supported columns: hospitaladmissions: ['admissiontype', 'admitsource', "
+        "'dischargedestination'], diagnosiscodes: ['description'], "
+        "procedurecodes: ['description'], medicationorders: ['medicationname'], "
+        "clinicalitemtypes: ['itemname'], labtesttypes: ['itemname'], "
+        "microbiologyresults: ['specimentype', 'testname', 'organismname']"
+    )
 
     class Config:
         arbitrary_types_allowed = True
@@ -34,13 +41,18 @@ class ValueSimilaritySearch(BaseModel):
         except Exception as e:
             return f"Error performing similarity search: {str(e)}"
 
-    @staticmethod
-    def get_info() -> Dict[str, Any]:
+    def get_info(self) -> Dict[str, Any]:
+        description = (
+            "Perform a semantic similarity search (embedding-based) to find up "
+            "to k values similar to a given value in a specified column."
+        )
+        if self.schema_description is not None:
+            description += f" {self.schema_description}"
         return {
             "type": "function",
             "function": {
                 "name": "value_similarity_search",
-                "description": "Perform a semantic similarity search (embedding-based) to find up to k values similar to a given value in a specified column. Supported columns: hospitaladmissions: ['admissiontype', 'admitsource', 'dischargedestination'], diagnosiscodes: ['description'], procedurecodes: ['description'], medicationorders: ['medicationname'], clinicalitemtypes: ['itemname'], labtesttypes: ['itemname'], microbiologyresults: ['specimentype', 'testname', 'organismname']",
+                "description": description,
                 "parameters": {
                     "type": "object",
                     "properties": {

@@ -4,6 +4,7 @@
 # Python
 __pycache__/
 *.pyc
+.venv/
 
 # Data (PhysioNet credentialed access required)
 *.sqlite
@@ -17,6 +18,14 @@ faiss_index_*/
 results/
 
 # Analysis scripts and outputs (development only)
+tests/
+.pytest_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+.debug-journal.md
 alignment_analysis.py
 alignment_issues.json
 analyze_adapt.py

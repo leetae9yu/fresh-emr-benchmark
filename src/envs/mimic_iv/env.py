@@ -78,13 +78,17 @@ class MimicIVEnv(Env):
             rules += "\n\n" + task_type_adaptive
 
         match experiment.schema_guidance:
+            case SchemaGuidance.BENCHMARK:
+                with open(os.path.join(self.folder_path, "db_rules.txt"), "r") as f:
+                    rules += "\n\n" + f.read()
+            case SchemaGuidance.IDENTIFIER_FREE:
+                with open(
+                    "src/ablation_prompts/mimic_iv/db_rules.txt",
+                    "r",
+                ) as f:
+                    rules += "\n\n" + f.read()
             case SchemaGuidance.HIDDEN:
                 pass
-            case SchemaGuidance.BENCHMARK:
-                raise ValueError(
-                    "Original-schema environments require "
-                    "--schema_guidance hidden"
-                )
             case unreachable:
                 assert_never(unreachable)
 
@@ -103,6 +107,39 @@ class MimicIVEnv(Env):
         match experiment.tool_mode:
             case ToolMode.SQL_ONLY:
                 tools = [sql_execute]
+            case ToolMode.SQL_VALUE:
+                faiss_path = (
+                    "src/envs/mimic_iv/faiss_index_mimic_iv-"
+                    + parse_model_name(embedding_model)
+                )
+                columns_to_retrieve = {
+                    "admissions": [
+                        "admission_type",
+                        "admission_location",
+                        "discharge_location",
+                    ],
+                    "d_icd_diagnoses": ["long_title"],
+                    "d_icd_procedures": ["long_title"],
+                    "prescriptions": ["drug"],
+                    "d_items": ["label"],
+                    "d_labitems": ["label"],
+                    "microbiologyevents": [
+                        "spec_type_desc",
+                        "test_name",
+                        "org_name",
+                    ],
+                }
+                vector_store = initialize_vector_store(
+                    engine,
+                    embedding_model,
+                    faiss_path,
+                    columns_to_retrieve,
+                )
+                value_similarity_search = ValueSimilaritySearch(
+                    vector_store=vector_store,
+                    schema_description=None,
+                )
+                tools = [sql_execute, value_similarity_search]
             case ToolMode.FULL:
                 table_search = TableSearch(engine=engine)
                 column_search = ColumnSearch(engine=engine)
@@ -135,7 +172,15 @@ class MimicIVEnv(Env):
                     columns_to_retrieve,
                 )
                 value_similarity_search = ValueSimilaritySearch(
-                    vector_store=vector_store
+                    vector_store=vector_store,
+                    schema_description=(
+                        "Supported columns: admissions: ['admission_type', "
+                        "'admission_location', 'discharge_location'], "
+                        "d_icd_diagnoses: ['long_title'], d_icd_procedures: "
+                        "['long_title'], prescriptions: ['drug'], d_items: "
+                        "['label'], d_labitems: ['label'], microbiologyevents: "
+                        "['spec_type_desc', 'test_name', 'org_name']"
+                    ),
                 )
                 web_search = WebSearch()
                 tools = [

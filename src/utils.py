@@ -81,25 +81,24 @@ def initialize_vector_store(engine: Engine, embedding_model: str, faiss_path: st
 
     def get_litellm_embeddings(texts: List[str], batch_size: int = 100) -> List[List[float]]:
         all_embeddings = []
-        if len(texts) <= 1:
-            for i in range(0, len(texts), batch_size):
-                batch_texts = texts[i:i + batch_size]
+        request_batch_size = 2048 if embedding_model.startswith("openrouter/") else batch_size
+        for i in range(0, len(texts), request_batch_size):
+            batch_texts = texts[i:i + request_batch_size]
+            if embedding_model.startswith("openrouter/"):
+                response = embedding(
+                    model=embedding_model.removeprefix("openrouter/"),
+                    input=batch_texts,
+                    custom_llm_provider="openai_like",
+                    api_base="https://openrouter.ai/api/v1",
+                    api_key=os.getenv("OPENROUTER_API_KEY"),
+                )
+            else:
                 response = embedding(model=embedding_model, input=batch_texts)
-                for d in response.data:
-                    if isinstance(d, dict):
-                        all_embeddings.append(d['embedding'])
-                    else:
-                        all_embeddings.append(d.embedding)
-        else:
-            num_batches = (len(texts) + batch_size - 1) // batch_size
-            for i in tqdm(range(0, len(texts), batch_size), total=num_batches, desc="Embedding batches"):
-                batch_texts = texts[i:i + batch_size]
-                response = embedding(model=embedding_model, input=batch_texts)
-                for d in response.data:
-                    if isinstance(d, dict):
-                        all_embeddings.append(d['embedding'])
-                    else:
-                        all_embeddings.append(d.embedding)
+            for d in response.data:
+                if isinstance(d, dict):
+                    all_embeddings.append(d['embedding'])
+                else:
+                    all_embeddings.append(d.embedding)
         return all_embeddings
 
     class LiteLLMEmbeddings(Embeddings):
@@ -128,9 +127,6 @@ def initialize_vector_store(engine: Engine, embedding_model: str, faiss_path: st
                 if ("table" in meta and "column" in meta and meta["table"] in columns_to_retrieve and meta["column"] in columns_to_retrieve[meta["table"]]):
                     existing_metadata.add((meta["table"], meta["column"]))
 
-    texts_to_embed = []
-    metadatas_for_embedding = []
-
     def query_as_list(engine: Engine, table: str, column: str) -> List[str]:
         with engine.connect() as conn:
             result = conn.execute(text(f"SELECT DISTINCT {column} FROM {table} WHERE {column} IS NOT NULL;"))
@@ -138,31 +134,40 @@ def initialize_vector_store(engine: Engine, embedding_model: str, faiss_path: st
         res = [el for sub in res for el in sub]
         return res
     
-    total_columns = sum(len(columns) for columns in columns_to_retrieve.values())
     for table, columns in columns_to_retrieve.items():
-        for column in columns:            
-            if (table, column) not in existing_metadata:
-                values = query_as_list(engine, table, column)
-                texts_to_embed.extend(values)
-                metadatas_for_embedding.extend([{"table": table, "column": column} for _ in values])
-
-    if texts_to_embed:
-        print(f"Starting vectorization for {len(texts_to_embed)} items...")
-        new_embeddings = get_litellm_embeddings(texts_to_embed)
-
-        if vector_store is None:
-            vector_store = FAISS.from_embeddings(
-                text_embeddings=list(zip(texts_to_embed, new_embeddings)),
-                embedding=embeddings_instance,
-                metadatas=metadatas_for_embedding
-            )
-        else:
-            vector_store.add_embeddings(
-                text_embeddings=list(zip(texts_to_embed, new_embeddings)),
-                metadatas=metadatas_for_embedding
-            )
-
-        vector_store.save_local(faiss_path)
+        for column in columns:
+            if (table, column) in existing_metadata:
+                continue
+            values = query_as_list(engine, table, column)
+            request_batch_size = 2048 if embedding_model.startswith("openrouter/") else 100
+            num_batches = (len(values) + request_batch_size - 1) // request_batch_size
+            for i in tqdm(
+                range(0, len(values), request_batch_size),
+                total=num_batches,
+                desc=f"Embedding {table}.{column}",
+            ):
+                batch_texts = values[i:i + request_batch_size]
+                batch_embeddings = get_litellm_embeddings(
+                    batch_texts,
+                    request_batch_size,
+                )
+                batch_metadatas = [
+                    {"table": table, "column": column}
+                    for _ in batch_texts
+                ]
+                if vector_store is None:
+                    vector_store = FAISS.from_embeddings(
+                        text_embeddings=list(zip(batch_texts, batch_embeddings)),
+                        embedding=embeddings_instance,
+                        metadatas=batch_metadatas,
+                    )
+                else:
+                    vector_store.add_embeddings(
+                        text_embeddings=list(zip(batch_texts, batch_embeddings)),
+                        metadatas=batch_metadatas,
+                    )
+            if values and vector_store is not None:
+                vector_store.save_local(faiss_path)
 
     return vector_store
 

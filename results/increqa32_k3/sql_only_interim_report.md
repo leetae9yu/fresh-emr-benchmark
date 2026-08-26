@@ -3,6 +3,9 @@
 Completed at 2026-08-26 18:31:50 UTC on
 `experiment/resumable-increqa-pilot`.
 
+Detailed trajectory behavior, failure-loop, recovery, and agent-turn analysis:
+[`sql_only_trajectory_analysis.md`](sql_only_trajectory_analysis.md).
+
 ## Integrity
 
 - 64 unique SQL-only signatures

@@ -1,29 +1,10 @@
 # IncreQA SQL-only trajectory analysis
 
-This report analyzes agent behavior inside the completed SQL-only motivation
-matrix. It complements `sql_only_interim_report.md`, which reports aggregate
-reward metrics.
-
-## Scope and integrity
-
-- Branch: `report/sql-only-trajectory-analysis`
-- Source experiment branch: `experiment/resumable-increqa-pilot`
-- Latest immutable SQL-only signatures: **64**
-- Valid trajectories: **768**
-- Cells: **16 environment cells**
-- Denominator: **48 trajectories per cell**
-- Tasks: **16 per database**, each with three independent trials
-- Superseded or interrupted rows with `reward: null` were excluded
-- Binary feedback displays SQL failures as `FAILED`; detailed-only error
-  categories therefore cannot be inferred in binary cells
-
 The analysis uses the complete `messages` transcript. This is more complete
 than `reward_info.pred_sql`, which omits some tool calls in max-turn
 trajectories.
 
 ## Feature definitions
-
-All features are trajectory-level and may overlap.
 
 | Feature | Definition |
 |---|---|

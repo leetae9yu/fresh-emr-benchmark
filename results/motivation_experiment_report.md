@@ -103,6 +103,50 @@
 | eICU | **1/40 (2.50%)** | 0/40 (0.00%) | 0/40 (0.00%) | 0/40 (0.00%) |
 | **Total** | **1/80 (1.25%)** | **0/80 (0.00%)** | **0/80 (0.00%)** | **0/80 (0.00%)** |
 
+### 4.5 Paired available vs unavailable analysis
+
+| Analysis item | Setting |
+|---|---|
+| Unit | Same task paired within the same schema |
+| Outcome | Binary first-valid k=1 success |
+| Test | Two-sided exact McNemar test |
+| Available-only | Success with information available; failure when unavailable |
+| Unavailable-only | Failure with information available; success when unavailable |
+| Significance threshold | `p < 0.05` |
+
+#### Gemini 2.5 Flash-Lite full k=1
+
+| Schema | Available | Unavailable | Difference | Available-only | Unavailable-only | Exact p-value |
+|---|---:|---:|---:|---:|---:|---:|
+| Original | **57/366 (15.57%)** | 5/366 (1.37%) | **+14.21%p** | 56 | 4 | **9.08×10⁻¹³** |
+| Star-renamed | **41/366 (11.20%)** | 1/366 (0.27%) | **+10.93%p** | 41 | 1 | **1.96×10⁻¹¹** |
+
+#### Gemini 3.5 Flash paired pilot
+
+| Schema | Available | Unavailable | Difference | Available-only | Unavailable-only | Exact p-value |
+|---|---:|---:|---:|---:|---:|---:|
+| Original | 10/12 (83.3%) | 7/12 (58.3%) | +25.0%p | 4 | 1 | 0.375 |
+| Star-renamed | **11/12 (91.7%)** | 0/12 (0.0%) | **+91.7%p** | 11 | 0 | **0.00098** |
+
+| Evidence statement | Status |
+|---|---|
+| Available information improves 2.5 Flash-Lite performance | Supported on both schemas |
+| Available information improves strong-model Star performance | Supported |
+| Strong-model Original difference is significant in the 12-pair pilot | Not supported; pilot is underpowered |
+| Star blocked failure is explained by base model incapability | Rejected by Star-available positive control |
+| Available condition can be removed to reduce cost | No; it is the positive control required for interpretation |
+
+| Cost-constrained design option | Interpretation value |
+|---|---|
+| Remove available conditions | Invalidates the causal interpretation of blocked failures |
+| Keep all four conditions at k=1 | Preferred minimum design |
+| Reduce task count but preserve paired conditions | Valid pilot-stage compromise |
+| Prioritize Star available/unavailable pairs | Preserves the primary renamed-schema test |
+| Use a smaller Original control subset | Possible secondary compromise |
+
+> These results identify a **schema-information availability effect** because
+> metadata access and the identifier-bearing prompt guide change together.
+
 ## 5. AdaptQA failure analysis
 
 ### 5.1 Gemini 2.5 Flash-Lite full k=1

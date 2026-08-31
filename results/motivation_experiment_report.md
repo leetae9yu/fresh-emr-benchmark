@@ -148,6 +148,38 @@
 > These results identify a **schema-information availability effect** because
 > metadata access and the identifier-bearing prompt guide change together.
 
+### 4.6 Paired Original vs Star-renamed analysis
+
+| Analysis item | Setting |
+|---|---|
+| Unit | Same task paired between Original and Star within the same information condition |
+| Outcome | Binary first-valid k=1 success |
+| Test | Two-sided exact McNemar test |
+| Difference | Star SR minus Original SR |
+| Retention | Star SR divided by Original SR |
+
+#### Gemini 2.5 Flash-Lite full k=1
+
+| Information | Original | Star-renamed | Difference | Retention | Original-only success | Star-only success | Exact p-value |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| Available | **57/366 (15.57%)** | 41/366 (11.20%) | -4.37%p | 71.9% | 43 | 27 | 0.0722 |
+| Unavailable | 5/366 (1.37%) | 1/366 (0.27%) | -1.09%p | 20.0% | 5 | 1 | 0.2188 |
+
+#### Gemini 3.5 Flash paired pilot
+
+| Information | Original | Star-renamed | Difference | Retention | Original-only success | Star-only success | Exact p-value |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| Available | 10/12 (83.3%) | **11/12 (91.7%)** | +8.3%p | 110.0% | 1 | 2 | 1.0000 |
+| Unavailable | **7/12 (58.3%)** | **0/12 (0.0%)** | **-58.3%p** | **0.0%** | 7 | 0 | **0.0156** |
+
+| Schema-comparison evidence | Interpretation |
+|---|---|
+| 2.5 Flash-Lite available Original vs Star | Modest 4.37%p gap; not significant at 0.05 |
+| 2.5 Flash-Lite unavailable Original vs Star | Both conditions are near the model floor |
+| 3.5 Flash available Original vs Star | Renaming causes no observed penalty when schema information is available |
+| 3.5 Flash unavailable Original vs Star | Significant 58.3%p Star collapse while Original retains 58.3% |
+| Strong-model interaction | Public-schema prior is useful on Original, but does not transfer to renamed Star |
+
 ## 5. AdaptQA failure analysis
 
 ### 5.1 Gemini 2.5 Flash-Lite full k=1
@@ -317,7 +349,43 @@
 | Tables | `admissions` 173; `patients` 52; `labevents` 26; `transfers` 17; `d_icd_diagnoses` 15 | `admissions` 181; `prescriptions` 91; `patients` 83; `diagnoses_icd` 18; `diagnosis` 14 |
 | Columns | `hadm_id` 421; `charttime` 168; `admittime` 137; `subject_id` 96; `drug` 95 | `hadm_id` 304; `test_name` 203; `admittime` 122; `charttime` 59; `event_type` 27 |
 
-### 8.5 Five-model IncreQA pilot aggregate
+### 8.5 Original vs Star trajectory mechanism
+
+#### Gemini 2.5 Flash-Lite full k=1
+
+| Schema / information | Success | Valid data-SQL trajectory | Missing-schema errors | Trajectories with missing error | Max-turn |
+|---|---:|---:|---:|---:|---:|
+| Original available | **57/366** | **171/366 (46.7%)** | 1,627 | 251/366 (68.6%) | 134/366 (36.6%) |
+| Star available | 41/366 | 138/366 (37.7%) | 2,151 | 325/366 (88.8%) | 223/366 (60.9%) |
+| Original unavailable | 5/366 | 10/366 (2.7%) | **2,611** | 331/366 (90.4%) | 244/366 (66.7%) |
+| Star unavailable | **1/366** | **2/366 (0.5%)** | 2,495 | 332/366 (90.7%) | **251/366 (68.6%)** |
+
+| Original identifiers observed inside Star trajectories | Star available | Star unavailable |
+|---|---:|---:|
+| Original-table occurrences | 327 | **419** |
+| Original-column occurrences | 1,342 | 974 |
+| Queries containing an Original identifier | 593/3,538 (16.8%) | **560/2,947 (19.0%)** |
+| Trajectories containing an Original identifier | 152/366 (41.5%) | 140/366 (38.3%) |
+| Renamed-Star-table queries | **1,245/3,538 (35.2%)** | 91/2,947 (3.1%) |
+| Original-error trajectories | 135 | 95 |
+| Recovery after an Original-identifier error | **48/135 (35.6%)** | 1/95 (1.1%) |
+
+| Interpretation rule | Application |
+|---|---|
+| Original identifiers in Original DB | Valid schema use; not counted as prior errors |
+| Original identifiers inside Star DB | Evidence of fallback to the public Original schema |
+| Total Original occurrence | Does not rise because blocked trajectories terminate before column-rich queries |
+| High-confidence table occurrence | Rises 327 → 419 (+28.1%) after information removal |
+| Main difference | Available trajectories transition to renamed-Star names; unavailable trajectories do not recover |
+
+#### Gemini 3.5 Flash paired pilot
+
+| Information | Original success | Star success | Original identifiers inside Star | Missing-schema errors inside Star | Interpretation |
+|---|---:|---:|---:|---:|---|
+| Available | 10/12 | **11/12** | **0** | **0** | Renamed schema is solved after discovery |
+| Unavailable | **7/12** | **0/12** | **55** | **247** | Original prior remains useful only on Original DB |
+
+### 8.6 Five-model IncreQA pilot aggregate
 
 | Star condition | Trajectories | Success | Original identifier occurrences | Affected trajectories | Missing table/column errors |
 |---|---:|---:|---:|---:|---:|
@@ -334,7 +402,7 @@
 > full 2.5 Flash-Lite run. The pilot trend must not be substituted for the
 > full-run model-specific count.
 
-### 8.6 Model breakdown: Star + information unavailable
+### 8.7 Model breakdown: Star + information unavailable
 
 | Agent | Success | SQL queries | Original identifier occurrences | Affected trajectories | Same identifier repeated | Missing table/column errors |
 |---|---:|---:|---:|---:|---:|---:|
@@ -344,21 +412,21 @@
 | 3.5 Flash | 0/6 | **167** | 30 | **6/6** | 1/6 | **128** |
 | 2.5 Pro | 0/6 | 13 | 14 | 2/6 | 1/6 | 11 |
 
-### 8.7 Gemini 3.5 Flash clean comparison
+### 8.8 Gemini 3.5 Flash clean comparison
 
 | Star condition | Flows | Trajectories | Success | Original identifier occurrences | Original-identifier errors | All missing-schema errors |
 |---|---|---:|---:|---:|---:|---:|
 | Information available | IncreQA + AdaptQA | 12 | **11/12** | **0** | 0 | 0 |
 | Information unavailable | IncreQA + AdaptQA | 12 | **0/12** | **55** | 52 | **247** |
 
-### 8.8 Observed Original-schema identifiers
+### 8.9 Observed Original-schema identifiers
 
 | DB | Tables/columns observed in Star queries |
 |---|---|
 | MIMIC-IV | `patients`, `admissions`, `diagnoses_icd`, `d_icd_diagnoses`, `procedures_icd`, `d_icd_procedures`, `prescriptions`, `labevents`, `d_labitems`, `inputevents`, `chartevents`, `subject_id`, `hadm_id`, `admittime`, `long_title` |
 | eICU | `patient`, `medication`, `diagnosis`, `microlab`, `intakeoutput`, `vitalperiodic` |
 
-### 8.9 Representative 3.5 Flash MIMIC Star trajectory
+### 8.10 Representative 3.5 Flash MIMIC Star trajectory
 
 | Step | Information available | Information unavailable |
 |---|---|---|

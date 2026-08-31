@@ -62,6 +62,7 @@
 |---|---:|
 | Final coverage | 1,464/1,464 |
 | Reused first-valid trajectories | 257 |
+| Reused-record ordering | Earliest saved valid completion from concurrent prior k=3 artifacts; no explicit trial index |
 | Newly executed trajectories | 1,207 |
 | Overall successes | 104/1,464 |
 | Overall SR-1 | 7.10% |
@@ -246,7 +247,77 @@
 
 ## 8. Star trajectory identifier analysis
 
-### 8.1 Five-model IncreQA aggregate
+### 8.1 Full 2.5 Flash-Lite counting method
+
+| Item | Definition |
+|---|---|
+| Scope | All 366 Star-available and all 366 Star-unavailable first-valid k=1 trajectories |
+| Source | Complete `messages` transcript, including every `sql_execute` call and tool result |
+| Parser | SQLGlot 27.14.0 with the SQLite dialect |
+| Original table | AST `Table` node in the Original rename map but absent from the Star table set |
+| Original column | AST `Column` node in the Original rename map but absent from the Star column set |
+| Renamed Star table | AST `Table` node present only in the renamed Star table set |
+| Shared identifiers | Names present in both Original and Star are excluded from prior counts |
+| Occurrence | One AST node; repeated references in one query are counted repeatedly |
+| Affected trajectory | At least one Original-only table or column reference |
+| Repeated trajectory | The same Original-only identifier occurs at least twice |
+| Missing-schema error | Tool result contains `no such table` or `no such column` |
+| Recovery | After an Original-identifier error, a later renamed-Star-table query returns a non-error result |
+| Valid data SQL | At least one non-metadata SQL query returns a non-error result |
+| Count confidence | Table-node counts are strongest; unqualified column nodes can include output-alias references |
+
+| Parse coverage | Available | Unavailable |
+|---|---:|---:|
+| Parsed queries / SQL queries | 3,518/3,538 (99.4%) | 2,944/2,947 (99.9%) |
+| Parse failures | 20 | 3 |
+
+### 8.2 Full 2.5 Flash-Lite Star comparison
+
+| Metric | Information available | Information unavailable | Change |
+|---|---:|---:|---:|
+| Trajectories | 366 | 366 | — |
+| Success | **41/366 (11.20%)** | **1/366 (0.27%)** | **-10.93%p** |
+| SQL queries | 3,538 | 2,947 | -16.7% |
+| Original-table occurrences | 327 | **419** | **+28.1%** |
+| Original-column occurrences | 1,342 | 974 | -27.4% |
+| Total Original-identifier occurrences | 1,669 | 1,393 | -16.5% |
+| Queries containing an Original identifier | 593/3,538 (16.8%) | 560/2,947 (19.0%) | +2.2%p |
+| Trajectories containing an Original identifier | 152/366 (41.5%) | 140/366 (38.3%) | -3.3%p |
+| Trajectories repeating the same Original identifier | 114/366 (31.1%) | 103/366 (28.1%) | -3.0%p |
+| Renamed-Star-table occurrences | **1,884** | 109 | **-94.2%** |
+| Queries containing a renamed Star table | **1,245/3,538 (35.2%)** | 91/2,947 (3.1%) | **-32.1%p** |
+| Missing-schema errors | 2,151 | **2,495** | **+16.0%** |
+| Trajectories with a missing-schema error | 325/366 (88.8%) | 332/366 (90.7%) | +1.9%p |
+| Recovery after an Original-identifier error | **48/135 (35.6%)** | 1/95 (1.1%) | **-34.5%p** |
+| Trajectories with a valid data-SQL result | **138/366 (37.7%)** | 2/366 (0.5%) | **-37.2%p** |
+| Max-turn trajectories | 223/366 (60.9%) | **251/366 (68.6%)** | +7.7%p |
+
+| Full-run interpretation | Result |
+|---|---|
+| Does total Original-name occurrence increase after blocking? | No; complex column-rich queries terminate earlier |
+| Does Original-table occurrence increase? | Yes, 327 → 419 (+28.1%) |
+| Does the share of queries containing Original identifiers increase? | Yes, 16.8% → 19.0% |
+| Does renamed-Star identifier use persist? | No, renamed-Star queries fall from 35.2% to 3.1% |
+| Can the model recover after an Original-identifier error? | Recovery falls from 35.6% to 1.1% |
+| Main mechanism | Failure to discover and transition to renamed-Star identifiers |
+
+### 8.3 Full 2.5 Flash-Lite flow breakdown
+
+| Flow / information | Success | Original table occurrences | Original column occurrences | Renamed-Star queries | Recovery | Valid data SQL | Max-turn |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| IncreQA available | 41/286 | 291 | 1,026 | 963 | 44 | 114/286 | 171/286 |
+| IncreQA unavailable | 1/286 | **321** | 818 | **84** | **1** | **2/286** | **202/286** |
+| AdaptQA available | 0/80 | 36 | 316 | 282 | 4 | 24/80 | 52/80 |
+| AdaptQA unavailable | 0/80 | **98** | 156 | **7** | **0** | **0/80** | 49/80 |
+
+### 8.4 Top Original identifiers in the full 2.5 Flash-Lite Star run
+
+| Type | Information available | Information unavailable |
+|---|---|---|
+| Tables | `admissions` 173; `patients` 52; `labevents` 26; `transfers` 17; `d_icd_diagnoses` 15 | `admissions` 181; `prescriptions` 91; `patients` 83; `diagnoses_icd` 18; `diagnosis` 14 |
+| Columns | `hadm_id` 421; `charttime` 168; `admittime` 137; `subject_id` 96; `drug` 95 | `hadm_id` 304; `test_name` 203; `admittime` 122; `charttime` 59; `event_type` 27 |
+
+### 8.5 Five-model IncreQA pilot aggregate
 
 | Star condition | Trajectories | Success | Original identifier occurrences | Affected trajectories | Missing table/column errors |
 |---|---:|---:|---:|---:|---:|
@@ -259,7 +330,11 @@
 | Missing table/column errors | 101 → 301 (**2.98×**) |
 | Success | 36.7% → 3.3% |
 
-### 8.2 Model breakdown: Star + information unavailable
+> The five-model pilot shows a larger Original-occurrence increase than the
+> full 2.5 Flash-Lite run. The pilot trend must not be substituted for the
+> full-run model-specific count.
+
+### 8.6 Model breakdown: Star + information unavailable
 
 | Agent | Success | SQL queries | Original identifier occurrences | Affected trajectories | Same identifier repeated | Missing table/column errors |
 |---|---:|---:|---:|---:|---:|---:|
@@ -269,21 +344,21 @@
 | 3.5 Flash | 0/6 | **167** | 30 | **6/6** | 1/6 | **128** |
 | 2.5 Pro | 0/6 | 13 | 14 | 2/6 | 1/6 | 11 |
 
-### 8.3 Gemini 3.5 Flash clean comparison
+### 8.7 Gemini 3.5 Flash clean comparison
 
 | Star condition | Flows | Trajectories | Success | Original identifier occurrences | Original-identifier errors | All missing-schema errors |
 |---|---|---:|---:|---:|---:|---:|
 | Information available | IncreQA + AdaptQA | 12 | **11/12** | **0** | 0 | 0 |
 | Information unavailable | IncreQA + AdaptQA | 12 | **0/12** | **55** | 52 | **247** |
 
-### 8.4 Observed Original-schema identifiers
+### 8.8 Observed Original-schema identifiers
 
 | DB | Tables/columns observed in Star queries |
 |---|---|
 | MIMIC-IV | `patients`, `admissions`, `diagnoses_icd`, `d_icd_diagnoses`, `procedures_icd`, `d_icd_procedures`, `prescriptions`, `labevents`, `d_labitems`, `inputevents`, `chartevents`, `subject_id`, `hadm_id`, `admittime`, `long_title` |
 | eICU | `patient`, `medication`, `diagnosis`, `microlab`, `intakeoutput`, `vitalperiodic` |
 
-### 8.5 Representative 3.5 Flash MIMIC Star trajectory
+### 8.9 Representative 3.5 Flash MIMIC Star trajectory
 
 | Step | Information available | Information unavailable |
 |---|---|---|

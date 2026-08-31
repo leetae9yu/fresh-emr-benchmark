@@ -370,12 +370,34 @@
 | Original-error trajectories | 135 | 95 |
 | Recovery after an Original-identifier error | **48/135 (35.6%)** | 1/95 (1.1%) |
 
+| Original-query ordering inside Star trajectories | Star available | Star unavailable |
+|---|---:|---:|
+| Successful metadata observed before query | 141/593 (23.8%) | 0/560 (0.0%) |
+| No successful metadata observed before query | **452/593 (76.2%)** | **560/560 (100.0%)** |
+| Renamed-Star table already used before query | **308/593 (51.9%)** | 16/560 (2.9%) |
+| No renamed-Star table used before query | 285/593 (48.1%) | **544/560 (97.1%)** |
+
+| Trajectory-level ordering | Star available | Star unavailable |
+|---|---:|---:|
+| Successful metadata trajectory | 207/366 (56.6%) | 0/366 (0.0%) |
+| Original identifier before successful metadata | 139/152 (91.4%) | 140/140 (100.0%) |
+| Original identifier after successful metadata | 58/152 (38.2%) | 0/140 (0.0%) |
+| Original identifier before first renamed-Star query | 125/152 (82.2%) | 139/140 (99.3%) |
+| Original identifier after a renamed-Star query | 79/152 (52.0%) | 6/140 (4.3%) |
+
+> Query-level before/after rows are mutually exclusive. Trajectory-level rows
+> can overlap when one trajectory contains Original queries on both sides of
+> the reference event. This establishes schema mixing but does not isolate
+> guidance as its cause because metadata access and guidance vary together.
+
 | Interpretation rule | Application |
 |---|---|
 | Original identifiers in Original DB | Valid schema use; not counted as prior errors |
 | Original identifiers inside Star DB | Evidence of fallback to the public Original schema |
 | Total Original occurrence | Does not rise because blocked trajectories terminate before column-rich queries |
 | High-confidence table occurrence | Rises 327 → 419 (+28.1%) after information removal |
+| Original prior before discovery | 76.2% of available Original queries occur before successful metadata |
+| Schema mixing after discovery | 51.9% of available Original queries occur after a renamed-Star query |
 | Main difference | Available trajectories transition to renamed-Star names; unavailable trajectories do not recover |
 
 #### Gemini 3.5 Flash paired pilot

@@ -1,0 +1,90 @@
+# Pilot only: 1 model x 4 DBs x 2 flows x 2 conditions x 1 trial = 16 jobs.
+# Dry-run: .venv/bin/python experiment_runner.py experiments/motivation.toml --dry-run
+# Execute only after reviewing the manifest and setting OPENROUTER_API_KEY.
+# Credentials are inherited from the environment; never put keys in this file.
+name = "motivation-pilot"
+description = "Compare full benchmark tools/guidance against schema-removed tools and identifier-free guidance, retaining SQLite catalog access explicitly."
+envs = ["mimic_iv", "mimic_iv_star", "eicu", "eicu_star"]
+task_types = ["incre", "adapt"]
+trials = 1
+parallel_cells = 1
+result_root = "../results/config-runner"
+
+[source]
+path = ".."
+python = ".venv/bin/python"
+# To select another checkout, change path and its interpreter together.
+# path = "../../EHR-ChatQA-gemini25fl-reasoning"
+# python = ".venv/bin/python"
+# Unsupported requested settings are rejected; trial_id alone may be recorded
+# solely in the manifest/directory for older engines. Omit reward_scope below
+# to use the historical implicit "any" on engines without that option.
+
+[defaults]
+embedding_model = "openrouter/openai/text-embedding-3-small"
+agent_strategy = "tool-calling"
+max_concurrency = 1
+max_agent_turns = 30
+max_retry = 3
+timeout = 600
+run_timeout = 3600.0
+reward_scope = "any"
+verbose = false
+
+[user]
+model = "openrouter/google/gemini-2.5-flash-lite"
+temperature = 1.0
+strategy = "nested-reflection"
+
+[validator]
+model = "openrouter/google/gemini-2.5-flash"
+trials = 1
+
+[[models]]
+name = "gemini-2.5-flash"
+model = "openrouter/google/gemini-2.5-flash"
+temperature = 0.0
+# Optional action-model controls (validated against the selected source CLI):
+# reasoning_effort = "low"
+# max_completion_tokens = 4096
+
+# Optional additional model (adds another 16 pilot jobs):
+# [[models]]
+# name = "gpt-4.1-mini"
+# model = "openrouter/openai/gpt-4.1-mini"
+# temperature = 0.0
+
+[[conditions]]
+name = "full"
+tool_mode = "full"
+metadata_access = "allowed"
+failure_feedback = "detailed"
+schema_guidance = "benchmark"
+
+[[conditions]]
+name = "schema_removed"
+tool_mode = "schema_removed"
+# Deliberate catalog policy: removal of supplied schema is not a catalog ban.
+metadata_access = "allowed"
+failure_feedback = "detailed"
+schema_guidance = "identifier_free"
+
+# IDs are selected separately for each database and conversational flow.
+# Start small; these are valid indices, not a representative quality sample.
+# Omit ALL task_ids tables (or set task_ids = {} at the top) for full catalogs.
+# A nonempty selection must name every selected database/flow explicitly.
+[task_ids.mimic_iv]
+incre = [0]
+adapt = [0]
+
+[task_ids.eicu]
+incre = [0]
+adapt = [0]
+
+[task_ids.mimic_iv_star]
+incre = [0]
+adapt = [0]
+
+[task_ids.eicu_star]
+incre = [0]
+adapt = [0]

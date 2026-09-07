@@ -26,7 +26,7 @@ import subprocess
 import sys
 from collections.abc import Sequence
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import ClassVar, Final, final
@@ -132,12 +132,13 @@ def parse_checkpoint_line(raw_line: str, path: Path, number: int) -> CheckpointL
 
 
 def read_checkpoint(path: Path) -> tuple[CheckpointLine, ...]:
+    records: dict[str, CheckpointLine] = {}
     with path.open(encoding="utf-8") as checkpoint:
-        return tuple(
-            parse_checkpoint_line(line, path, number)
-            for number, line in enumerate(checkpoint, start=1)
-            if line.strip()
-        )
+        for number, line in enumerate(checkpoint, start=1):
+            if line.strip():
+                record = parse_checkpoint_line(line, path, number)
+                records[record.sample_id] = record
+    return tuple(records.values())
 
 
 def merge_checkpoint_records(
@@ -193,21 +194,22 @@ def latest_matching_checkpoint(result_dir: Path, prefix: str) -> Path | None:
     candidates = [
         path
         for path in result_dir.glob("*.jsonl")
-        if prefix in path.name and path.stem.rpartition("_")[2].isdigit()
+        if path.stem.rpartition("_")[0] == prefix
+        and path.stem.rpartition("_")[2].isdigit()
     ]
     return max(
         candidates,
-        key=lambda path: int(path.stem.rpartition("_")[2]),
+        key=lambda path: path.stem.rpartition("_")[2],
         default=None,
     )
 
 
 def next_seed_path(result_dir: Path, prefix: str) -> Path:
-    timestamp = int(datetime.now(UTC).strftime("%Y%m%d%H%M%S"))
-    candidate = result_dir / f"{prefix}_{timestamp}.jsonl"
+    timestamp = datetime.now(UTC)
+    candidate = result_dir / f"{prefix}_{timestamp:%Y%m%d%H%M%S%f}.jsonl"
     while candidate.exists():
-        timestamp += 1
-        candidate = result_dir / f"{prefix}_{timestamp}.jsonl"
+        timestamp += timedelta(microseconds=1)
+        candidate = result_dir / f"{prefix}_{timestamp:%Y%m%d%H%M%S%f}.jsonl"
     return candidate
 
 

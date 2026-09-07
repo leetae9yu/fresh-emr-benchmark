@@ -6,7 +6,7 @@ Paper: [From Conversation to Query Execution: Benchmarking User and Tool Interac
 
 ## Setup
 
-Python >= 3.10
+Python >= 3.11
 
 ```bash
 pip install -r requirements.txt
@@ -68,6 +68,77 @@ src/envs/{env_name}/faiss_index_{env_name}-text-embedding-3-large/
 ```
 
 ## Usage
+
+### Config-driven experiments
+
+Edit `experiments/motivation.toml` instead of maintaining shell commands.
+`experiment_runner.py` is a standalone launcher; it invokes the selected
+checkout's `run.py` in subprocesses rather than copying the agent or evaluator.
+
+```bash
+# Read and validate the config, source options and task IDs without API calls
+# or output files.
+.venv/bin/python experiment_runner.py experiments/motivation.toml --dry-run
+
+# Execute the reviewed matrix.
+.venv/bin/python experiment_runner.py experiments/motivation.toml
+
+# Continue only the identical resolved configuration and source code.
+.venv/bin/python experiment_runner.py experiments/motivation.toml --resume
+```
+
+The TOML config selects `envs`, `task_types`, `trials`, `[[models]]`,
+`[[conditions]]`, `[user]`, `[validator]`, and `[defaults]`. Pilot task IDs
+are specified separately under `[task_ids.<env>]`, for example:
+
+```toml
+[task_ids.mimic_iv]
+incre = [20, 16, 125]
+adapt = [0, 20, 35]
+
+[task_ids.mimic_iv_star]
+incre = [20, 16, 125]
+adapt = [0, 20, 35]
+```
+
+Keep Original and Star task selections paired when testing renaming. Each
+trial has its own job, checkpoint directory and manifest trial ID; it does
+not select a trial by concurrent completion order. Set `parallel_cells`
+conservatively: FAISS-backed MIMIC processes consume substantial memory.
+Within each job, `[defaults].max_concurrency` controls task workers.
+Omit all `task_ids` tables to run the full selected catalogs. A nonempty
+selection must explicitly cover every selected environment and task type.
+The shipped sample uses one task per environment/flow and one trial, producing
+16 jobs; it is an execution smoke configuration, not a representative study.
+
+`[defaults].timeout` bounds the agent conversation's LLM/user work and SQL
+timeouts are clamped to its remaining time. Each model request has at most a
+120-second budget and three application attempts; SDK retries are disabled.
+Post-conversation validation has its own 120-second budget. Embedding and web
+tools retain their own runtime behavior, so `[defaults].run_timeout` is the
+hard wall-clock limit for the entire job process tree, including setup.
+Timed-out agent trajectories retain completed messages and recorded costs.
+
+The launcher writes a resolved `manifest.json`, per-job metadata, `logs/`,
+`checkpoints/`, `status/`, and a final `summary.json` under the config-hashed
+result directory. Exit code 0 requires both successful subprocesses and
+complete expected task coverage; invalid or duplicate outcomes are reported.
+The hash includes model/provider settings and source content, including local
+code changes. Changing a condition or code creates a separate experiment.
+Logs are not placed in checkpoint directories.
+
+`[source].path` is relative to the TOML file; `[source].python` can select
+the checkout's `.venv/bin/python`. Requested options are checked against
+that checkout's CLI before execution, including reasoning controls. Older
+engines without `--trial_id` use the job manifest and directory to identify
+the trial. Credentials stay in environment variables or the existing `.env`,
+not in TOML. `full` and `schema_removed` retain web search and require
+`TAVILY_API_KEY`, in addition to the chosen model and embedding credentials.
+
+The sample compares `full` with `schema_removed`. This removes the two
+schema helper tools and identifier-bearing guidance, but explicitly leaves
+SQLite catalog access allowed. It is not a catalog-blocked experiment.
+Change `metadata_access` separately if that is the intended treatment.
 
 Run a single task:
 ```bash
@@ -150,10 +221,17 @@ The experiment controls are independent:
 
 | Argument | Values | Behavior |
 |----------|--------|----------|
-| `--tool_mode` | `full`, `sql_only`, `sql_value` | Expose the paper's six tools, only `sql_execute`, or SQL plus embedding-based value similarity |
+| `--tool_mode` | `full`, `schema_removed`, `sql_only`, `sql_value` | All six tools; remove only table/column search; SQL only; or SQL plus similarity |
 | `--metadata_access` | `allowed`, `blocked` | Allow or deny SQLite catalogs, PRAGMAs, and table-valued PRAGMAs |
 | `--failure_feedback` | `detailed`, `binary` | Return SQLite errors or the stable token `FAILED` |
 | `--schema_guidance` | `benchmark`, `identifier_free`, `hidden` | Use the original/equivalent DB guide, a guide with identifier-bearing rules removed, or no DB-specific guide |
+| `--reward_scope` | `any`, `final` | Credit any matching candidate (default) or only the final SQL attempt / agent response |
+
+`schema_removed` retains SQL, similarity, substring, and web search in all
+four environments. Its similarity description omits supported schema
+identifiers. The config launcher requires `identifier_free` or `hidden`
+guidance for this condition. `full` retains the original benchmark guide
+and tool descriptions by default.
 
 Successful SQL queries return their result in both failure-feedback modes.
 `sql_only` skips FAISS initialization, so Gemini-only runs require only:
@@ -262,15 +340,30 @@ must pass a replacement explicitly, such as
 | `--task_ids` | `None` | Specific task IDs (space-separated) |
 | `--api_base` | `None` | API base URL for self-hosted models |
 | `--verbose` | `false` | Print conversations during execution |
-| `--tool_mode` | `full` | Tool exposure: `full`, `sql_only`, or `sql_value` |
+| `--tool_mode` | `full` | Tool exposure: `full`, `schema_removed`, `sql_only`, or `sql_value` |
 | `--metadata_access` | `allowed` | SQLite metadata policy: `allowed` or `blocked` |
 | `--failure_feedback` | `detailed` | SQL failure response: `detailed` or `binary` |
 | `--schema_guidance` | `benchmark` | Database-specific prompt guidance: `benchmark`, `identifier_free`, or `hidden` |
+| `--reward_scope` | `any` | Historical any-hit scope or `final` candidate only |
+| `--trial_id` | automatic | Explicit trial slot for a single-trial invocation |
+| `--reasoning_effort` | provider default | Explicit action-model reasoning setting; provider support is required |
+| `--max_completion_tokens` | provider default | Action-model output budget, including reasoning where applicable |
 
 ## Evaluation
 
 **IncreQA**: Agent's SQL result set is compared against the gold answer (exact set match).
-**AdaptQA**: Agent's natural-language answer (`<answer>` tags) is compared via fuzzy string matching.
+**AdaptQA**: Agent's tagged answer is compared with exact numeric values and
+normalized benchmark text/list formatting.
+
+SQL scoring uses the full successful result captured during the actual tool
+execution, not a second unrestricted database execution. Policy-denied and
+timed-out queries cannot receive credit. Numeric normalization accepts
+equivalent forms such as `1` and `1.0`, but not `1` and `10`.
+`reward_scope=any` retains the benchmark's historical candidate-selection
+scope; it is not a guarantee of final-answer correctness. `final` evaluates
+only the last SQL attempt for IncreQA or the last agent response for AdaptQA.
+These correctness fixes change scoring relative to the original release;
+existing result files and published scores are not rewritten.
 
 | Metric | Description |
 |--------|-------------|
@@ -283,7 +376,17 @@ must pass a replacement explicitly, such as
 python metric.py <result_file>
 python metric.py <result_file> --by_env
 python metric.py <result_file> --by_task_type
+# Detect tasks that never produced even an invalid row:
+python metric.py <result_file> --num_trials 1 --expected_tasks expected_tasks.json
 ```
+
+`expected_tasks.json` is a JSON array of `[db_id, task_type, task_id]` string
+triples. Metrics reject incomplete observed cohorts, including tasks with
+only invalid attempts; explicit expected tasks also detect wholly absent
+tasks. Appended revisions of a sample are counted once. Recorded costs
+include invalid attempts and report unknown totals, rather than treating
+missing costs as complete zero charges. Historical files containing
+incorrectly recorded zeros cannot be repaired from those fields alone.
 
 ## Results
 

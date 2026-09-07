@@ -107,43 +107,7 @@ class MimicIVEnv(Env):
         match experiment.tool_mode:
             case ToolMode.SQL_ONLY:
                 tools = [sql_execute]
-            case ToolMode.SQL_VALUE:
-                faiss_path = (
-                    "src/envs/mimic_iv/faiss_index_mimic_iv-"
-                    + parse_model_name(embedding_model)
-                )
-                columns_to_retrieve = {
-                    "admissions": [
-                        "admission_type",
-                        "admission_location",
-                        "discharge_location",
-                    ],
-                    "d_icd_diagnoses": ["long_title"],
-                    "d_icd_procedures": ["long_title"],
-                    "prescriptions": ["drug"],
-                    "d_items": ["label"],
-                    "d_labitems": ["label"],
-                    "microbiologyevents": [
-                        "spec_type_desc",
-                        "test_name",
-                        "org_name",
-                    ],
-                }
-                vector_store = initialize_vector_store(
-                    engine,
-                    embedding_model,
-                    faiss_path,
-                    columns_to_retrieve,
-                )
-                value_similarity_search = ValueSimilaritySearch(
-                    vector_store=vector_store,
-                    schema_description=None,
-                )
-                tools = [sql_execute, value_similarity_search]
-            case ToolMode.FULL:
-                table_search = TableSearch(engine=engine)
-                column_search = ColumnSearch(engine=engine)
-                value_substring_search = ValueSubstringSearch(engine=engine)
+            case ToolMode.SQL_VALUE | ToolMode.FULL | ToolMode.SCHEMA_REMOVED:
                 faiss_path = (
                     "src/envs/mimic_iv/faiss_index_mimic_iv-"
                     + parse_model_name(embedding_model)
@@ -182,15 +146,22 @@ class MimicIVEnv(Env):
                         "['spec_type_desc', 'test_name', 'org_name']"
                     ),
                 )
-                web_search = WebSearch()
-                tools = [
-                    table_search,
-                    column_search,
-                    sql_execute,
-                    value_substring_search,
-                    value_similarity_search,
-                    web_search,
-                ]
+                if experiment.tool_mode != ToolMode.FULL:
+                    value_similarity_search.schema_description = None
+                tools = [sql_execute, value_similarity_search]
+                if experiment.tool_mode != ToolMode.SQL_VALUE:
+                    tools = [
+                        sql_execute,
+                        ValueSubstringSearch(engine=engine),
+                        value_similarity_search,
+                        WebSearch(),
+                    ]
+                if experiment.tool_mode == ToolMode.FULL:
+                    tools = [
+                        TableSearch(engine=engine),
+                        ColumnSearch(engine=engine),
+                        *tools,
+                    ]
             case unreachable:
                 assert_never(unreachable)
 
@@ -206,4 +177,5 @@ class MimicIVEnv(Env):
             rule=rules,
             api_base=api_base,
             retry_reason=retry_reason,
+            experiment=experiment,
         )

@@ -8,7 +8,9 @@ def get_agent(
     agent_strategy: Optional[str] = None,
     temperature: float = 0.0,
     rule: str = "",
-    verbose: bool = False
+    verbose: bool = False,
+    reasoning_effort: Optional[str] = None,
+    max_completion_tokens: Optional[int] = None,
 ) -> Agent:
     if agent_strategy == "tool-calling":
         from src.agents.tool_calling_agent import ToolCallingAgent
@@ -18,7 +20,9 @@ def get_agent(
             api_base=api_base,
             temperature=temperature,
             rule=rule,
-            verbose=verbose
+            verbose=verbose,
+            reasoning_effort=reasoning_effort,
+            max_completion_tokens=max_completion_tokens,
         )
     else:
         raise ValueError(f"Agent strategy {agent_strategy} not implemented")

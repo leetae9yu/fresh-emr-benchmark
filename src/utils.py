@@ -1,4 +1,7 @@
 import json
+import hashlib
+from contextlib import contextmanager
+from contextvars import ContextVar
 import re
 import os
 import time
@@ -9,17 +12,16 @@ from datetime import datetime
 from ast import literal_eval
 from typing import Dict, Any, List, Optional
 from argparse import Namespace
-from math import comb
+from math import isfinite
 import pandas as pd
-from collections import Counter
 from tqdm import tqdm
 
-from src.types import Action, EnvRunResult, CostInfo, EnvInfo, RewardInfo, ValidationResult
+from src.types import Action, EnvRunResult, CostInfo, EnvInfo, RewardInfo, ValidationResult, AgentRunError, AgentTimeoutError
 from langchain_community.vectorstores import FAISS
 from sqlalchemy import text
 from sqlalchemy.engine import Engine
 import litellm
-from litellm.exceptions import ContextWindowExceededError, RateLimitError
+from litellm.exceptions import ContextWindowExceededError, RateLimitError, Timeout as ModelTimeout
 from litellm import completion, embedding
 from langchain_core.embeddings import Embeddings
 litellm.drop_params = True
@@ -309,80 +311,100 @@ def gemini_parse_tool_calls(input_text):
     return output
 
 
-def get_completion(model: str, messages: List[Dict[str, Any]], temperature: float, 
-                  tools: Optional[List[Dict[str, Any]]] = None, api_base: Optional[str] = None,
-                  response_format=None, n=1, parallel_tool_calls=False):
+REQUEST_TIMEOUT = 120.0
+_request_deadline: ContextVar[Optional[float]] = ContextVar("request_deadline", default=None)
 
-    if is_supported_closed_llm(model):
-        res = completion(
-            messages=messages,
-            model=model,
-            temperature=temperature,
-            tools=tools,
-            parallel_tool_calls=parallel_tool_calls if tools else None,
-            response_format=response_format,
-            n=n
-        )
-    elif is_supported_gemini_llm(model):
-        res = completion(
-            messages=messages,
-            model=model,
-            temperature=temperature,
-            tools=tools,
-            parallel_tool_calls=parallel_tool_calls if tools else None,
-            response_format=response_format,
-            n=n
-        )
-    elif is_supported_reasoning_llm(parse_model_name(model)):
-        res = completion(
-            messages=messages,
-            model=model,
-            tools=tools,
-            parallel_tool_calls=parallel_tool_calls if tools else None,
-            response_format=response_format,
-            n=n
-        )
+
+@contextmanager
+def request_deadline(deadline: float):
+    token = _request_deadline.set(deadline)
+    try:
+        yield
+    finally:
+        _request_deadline.reset(token)
+
+
+def remaining_timeout(deadline=None, timeout=REQUEST_TIMEOUT):
+    deadlines = [value for value in (deadline, _request_deadline.get()) if value is not None]
+    remaining = min(timeout, min(deadlines) - time.monotonic()) if deadlines else timeout
+    if remaining <= 0:
+        raise AgentTimeoutError("Request deadline exceeded")
+    return remaining
+
+
+def retry_wait(deadline=None, seconds=3.0):
+    time.sleep(remaining_timeout(deadline, seconds))
+    remaining_timeout(deadline)
+
+
+def response_cost(response) -> Optional[float]:
+    hidden = getattr(response, "_hidden_params", None) or {}
+    cost = hidden.get("response_cost")
+    if cost is None:
+        usage = getattr(response, "usage", None)
+        cost = usage.get("cost") if isinstance(usage, dict) else getattr(usage, "cost", None)
+    if cost is None:
+        return None
+    value = float(cost)
+    return value if isfinite(value) and value >= 0 else None
+
+
+def add_costs(*costs: Optional[float]) -> Optional[float]:
+    total = 0.0
+    for cost in costs:
+        if cost is None:
+            return None
+        total += cost
+    return round(total, 8)
+
+
+def get_completion(model: str, messages: List[Dict[str, Any]], temperature: float,
+                  tools: Optional[List[Dict[str, Any]]] = None, api_base: Optional[str] = None,
+                  response_format=None, n=1, parallel_tool_calls=False,
+                  reasoning_effort: Optional[str] = None,
+                  max_completion_tokens: Optional[int] = None,
+                  timeout: float = REQUEST_TIMEOUT):
+    kwargs: Dict[str, Any] = dict(messages=messages, model=model, tools=tools,
+                  parallel_tool_calls=parallel_tool_calls if tools else None,
+                  response_format=response_format, n=n,
+                  timeout=remaining_timeout(timeout=timeout), num_retries=0)
+    if api_base is not None:
+        kwargs["api_base"] = api_base
+    if reasoning_effort is not None:
+        kwargs.update(reasoning_effort=reasoning_effort,
+                      allowed_openai_params=["reasoning_effort"], include_reasoning=True)
+    if max_completion_tokens is not None:
+        kwargs["max_completion_tokens"] = max_completion_tokens
+    if is_supported_reasoning_llm(parse_model_name(model)):
+        pass  # These models do not accept temperature.
+    elif (is_supported_closed_llm(model) or is_supported_gemini_llm(model)
+          or model.startswith("openrouter/")):
+        kwargs["temperature"] = temperature
     elif is_supported_open_source_llm(model):
-        res = completion(
-            messages=messages,
-            model=model,
-            custom_llm_provider="openai",
-            temperature=temperature,
-            api_base=api_base,
-            tools=tools,
-            parallel_tool_calls=parallel_tool_calls if tools else None,
-            response_format=response_format,
-            n=n
-        )
-    elif model.startswith("openrouter/"):
-        res = completion(
-            messages=messages,
-            model=model,
-            temperature=temperature,
-            tools=tools,
-            parallel_tool_calls=parallel_tool_calls if tools else None,
-            response_format=response_format,
-            n=n
-        )
+        kwargs.update(custom_llm_provider="openai", temperature=temperature)
     else:
         raise ValueError(f"Model {model} is not supported")
-
-    return res
+    return completion(**kwargs)
 
 
 def get_action(model: str, messages: List[Dict[str, Any]], temperature: float, 
-               tools: Optional[List[Dict[str, Any]]] = None, api_base: Optional[str] = None):
+               tools: Optional[List[Dict[str, Any]]] = None, api_base: Optional[str] = None,
+               reasoning_effort: Optional[str] = None, max_completion_tokens: Optional[int] = None,
+               deadline: Optional[float] = None) -> tuple[Dict[str, Any], Action, bool, Optional[float]]:
+    deadline = deadline if deadline is not None else time.monotonic() + REQUEST_TIMEOUT
     cost = 0.0
     done = False
-    next_message = {'role': 'assistant', 'content': ''}
+    next_message: Dict[str, Any] = {'role': 'assistant', 'content': ''}
     action = Action(name='respond', kwargs={"content": ""})
     
-    max_retries = 1000
+    max_retries = 3
     for attempt in range(max_retries):
         try:
-            res = get_completion(model, messages, temperature, tools, api_base)
-            if hasattr(res, '_hidden_params') and 'response_cost' in res._hidden_params and res._hidden_params["response_cost"]:
-                cost += res._hidden_params["response_cost"]
+            res = get_completion(model, messages, temperature, tools, api_base,
+                                 reasoning_effort=reasoning_effort,
+                                 max_completion_tokens=max_completion_tokens,
+                                 timeout=remaining_timeout(deadline))
+            cost = add_costs(cost, response_cost(res))
 
             if not res.choices:
                 print(f"[LLM] Empty choices returned from API (treating as empty response)")
@@ -424,13 +446,18 @@ def get_action(model: str, messages: List[Dict[str, Any]], temperature: float,
             done = True
             break
 
-        except RateLimitError as e:
-            print(f"[LLM] Rate limit hit (attempt {attempt + 1}/{max_retries}): {e}")
-            time.sleep(10)
+        except (AgentTimeoutError, TimeoutError, ModelTimeout) as e:
+            raise AgentTimeoutError(str(e), cost=cost) from e
 
         except Exception as e:
             print(f"[LLM] Error (attempt {attempt + 1}/{max_retries}): {e}")
-            time.sleep(3)
+            if attempt + 1 == max_retries:
+                raise AgentRunError(f"Model request failed after {max_retries} attempts: {e}", cost=cost) from e
+            try:
+                retry_wait(deadline, 10.0 if isinstance(e, RateLimitError) else 3.0)
+            except AgentTimeoutError as timeout_error:
+                timeout_error.cost = cost
+                raise
 
     return next_message, action, done, cost
 
@@ -477,42 +504,11 @@ def is_supported_open_source_llm(model: str) -> bool:
     return model in supported_models
 
 
-def display_metrics(results: List[EnvRunResult], num_trials: int) -> None:
-
-    valid_ids = [f"{r.db_id}-{r.task_type}-{r.task_id}" for r in results if r.reward is not None]
-
-    counts = Counter(valid_ids)
-    invalid_tasks = [(key, count) for key, count in counts.items() if count != num_trials]
-    
-    if invalid_tasks:
-        for key, count in invalid_tasks:
-            print(f"Task {key} has {count} trials. {num_trials} trials required.")
-        raise AssertionError(f"All tasks should have {num_trials} results, but some tasks have different counts.")
-
-    filtered = [r for r in results if r.reward is not None]
-    rewards = [r.reward for r in filtered]
-    avg_reward = round(sum(rewards) / len(rewards) * 100, 1)
-
-    success_counts: Dict[str, int] = {}
-    for r in filtered:
-        key = f'{r.db_id}-{r.task_type}-{r.task_id}'
-        success_counts[key] = success_counts.get(key, 0) + (1 if r.reward == 1 else 0)
-
-    denom_cache = {k: comb(num_trials, k) for k in range(1, num_trials + 1)}
-
-    pass_at_k, pass_hat_k = {}, {}
-    for k in range(1, num_trials + 1):
-        denom = denom_cache[k]
-        no_succ = sum(comb(num_trials - s, k) / denom for s in success_counts.values()) / len(success_counts)
-        pass_at_k[k] = round((1 - no_succ) * 100, 1)
-        all_succ = sum(comb(s, k) / denom for s in success_counts.values()) / len(success_counts)
-        pass_hat_k[k] = round(all_succ * 100, 1)
-
-    print('# Trajectory:', len(filtered))
-    print(f"SR-{num_trials}: {avg_reward}")
-    print(f"Pass@{num_trials}: {pass_at_k[num_trials]}")
-    print(f"Pass^{num_trials}: {pass_hat_k[num_trials]}")
-    print(f"Gap-{num_trials}: {round(pass_at_k[num_trials] - pass_hat_k[num_trials], 1)}")
+def display_metrics(results: List[EnvRunResult], num_trials: int,
+                    expected_tasks: Optional[set[tuple[str, str, str]]] = None) -> None:
+    from metric import calculate_metrics, print_metrics
+    metrics = calculate_metrics(results, num_trials, expected_tasks=expected_tasks)
+    print_metrics(metrics)
 
 
 def save_checkpoint(ckpt_path: str, results: List[EnvRunResult]) -> None:
@@ -527,6 +523,23 @@ def update_checkpoint(ckpt_path: str, result: EnvRunResult, lock: threading.Lock
             f.write(json.dumps(result.model_dump()) + "\n")
 
 
+def experiment_fingerprint(config: Namespace) -> str:
+    # Task/trial scope belongs to the readable name, so explicit continuation can expand it.
+    defaults = dict(model=None, user_model=None, agent_strategy=None, temperature=0.0,
+                    user_strategy="nested-reflection", user_temperature=1.0, api_base=None,
+                    embedding_model="text-embedding-3-large", validation_model="gemini/gemini-2.5-flash",
+                    validation_trials=1, max_agent_turns=30, max_retry=10, timeout=600,
+                    reasoning_effort=None, max_completion_tokens=None, reward_scope="any",
+                    tool_mode="full", metadata_access="allowed", failure_feedback="detailed",
+                    schema_guidance="benchmark")
+    identity = {key: getattr(config, key, default) for key, default in defaults.items()}
+    # Preserve any explicit provider routes accepted by a launcher Namespace.
+    identity.update({key: value for key, value in vars(config).items()
+                     if key.endswith(("_api_base", "_provider"))})
+    payload = json.dumps(identity, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(payload.encode()).hexdigest()[:20]
+
+
 def get_ckpt_name(config: Namespace, add_time: bool = True) -> str:
     
     model_name = parse_model_name(config.model)
@@ -539,10 +552,11 @@ def get_ckpt_name(config: Namespace, add_time: bool = True) -> str:
     
     if not config.task_ids:
         task_part = f"k={config.num_trials}_range_{config.start_index}-{config.end_index}"
-    elif len(config.task_ids) < 20:
+    elif len('-'.join(map(str, config.task_ids))) <= 24:
         task_part = f"k={config.num_trials}_range_{'-'.join(map(str, config.task_ids))}"
     else:
-        task_part = f"k={config.num_trials}_range_{'-'.join(map(str, config.task_ids[:20]))}..."
+        scope_hash = hashlib.sha256(json.dumps(config.task_ids).encode()).hexdigest()[:20]
+        task_part = f"k={config.num_trials}_range_ids-{scope_hash}"
     
     if is_supported_reasoning_llm(user_model_name):
         user_part = f"user-{config.user_strategy}-{user_model_name}"
@@ -562,45 +576,61 @@ def get_ckpt_name(config: Namespace, add_time: bool = True) -> str:
     embedding_model = getattr(config, "embedding_model", "text-embedding-3-large")
     embedding_part = ""
     if embedding_model != "text-embedding-3-large":
-        embedding_part = "_embedding-" + parse_model_name(embedding_model)
+        embedding_part = "_embedding-" + parse_model_name(embedding_model)[:32]
 
-    time_part = "_" + datetime.now().strftime("%Y%m%d%H%M%S") if add_time else ""
-    
-    return agent_part + "_" + task_part + "_" + user_part + experiment_part + embedding_part + time_part
+    trial_id = getattr(config, "trial_id", None)
+    if trial_id is not None:
+        task_part += f"_trial={trial_id}"
+    identity_part = "_id-" + experiment_fingerprint(config)
+    # Keep the scope-independent signature stable when resuming a larger task/trial scope.
+    if len(agent_part + user_part + experiment_part + embedding_part + identity_part) > 180:
+        agent_part = f"{config.env}-{config.task_type}-{config.agent_strategy}"
+        user_part = f"user-{config.user_strategy}"
+    time_part = "_" + datetime.now().strftime("%Y%m%d%H%M%S%f") if add_time else ""
+
+    return agent_part + "_" + task_part + "_" + user_part + experiment_part + embedding_part + identity_part + time_part
 
 
 def load_results(config: Namespace, idx: List[str]) -> List[EnvRunResult]:
 
     ckpt_name = get_ckpt_name(config, add_time=False)
-    files = sorted([f for f in os.listdir(config.result_dir) if f.endswith('.jsonl')], key=lambda x: int(x.replace('.jsonl', '').split('_')[-1]))[::-1]
-    load_prev_file = None
-    for file in files:
-        if ckpt_name in file:
-            load_prev_file = file
-            break
+    if not os.path.isdir(config.result_dir):
+        return []
+    pattern = re.compile(re.escape(ckpt_name) + r"(?:_(\d{14}|\d{20}))?\.jsonl")
+    files = []
+    for filename in os.listdir(config.result_dir):
+        match = pattern.fullmatch(filename)
+        if match:
+            files.append((match.group(1) or "", filename))
+    load_prev_file = max(files)[1] if files else None
 
     if load_prev_file is None:
         return []
 
     prev_results = []
     filepath = os.path.join(config.result_dir, load_prev_file)
+    identity = experiment_fingerprint(config)
     with open(filepath, "r") as f:
-        for line in f:
+        for number, line in enumerate(f, 1):
             line = line.strip()
             if line:
-                prev_results.append(json.loads(line))
+                result = json.loads(line)
+                if result.get("experiment_id") not in (None, identity):
+                    raise ValueError(f"Checkpoint experiment_id mismatch: {filepath}:{number}")
+                prev_results.append(result)
     print(f"Loading previous results from {filepath}")
 
     if config.env in {"all", "all_original"}:
-        filtered_results = [r for r in prev_results if r['task_type'] == config.task_type and r['task_id'] in idx]
+        filtered_results = [r for r in prev_results if r['task_type'] == config.task_type and str(r['task_id']) in idx]
     else:
-        filtered_results = [r for r in prev_results if r['task_type'] == config.task_type and r['task_id'] in idx and r['db_id'] == config.env]
-    return [EnvRunResult(**result) for result in filtered_results]
+        filtered_results = [r for r in prev_results if r['task_type'] == config.task_type and str(r['task_id']) in idx and r['db_id'] == config.env]
+    latest = {result["sample_id"]: result for result in filtered_results}
+    return [EnvRunResult(**result) for result in latest.values()]
 
 
 def dummy_error_result(isolated_env, error_decision: str, error_msg: str, reward: float = None) -> EnvRunResult:
     return EnvRunResult(
-        db_id=isolated_env.db_id,
+        db_id=isolated_env.task.db_id,
         task_type=isolated_env.task.task_type,
         task_id=isolated_env.task.task_id,
         sample_id=str(uuid.uuid4()),

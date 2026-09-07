@@ -11,23 +11,24 @@ from src.experiment import FailureFeedback, format_sql_failure
 class SQLExecute(BaseModel):
     engine: Engine = Field(..., description="The engine to execute queries on.")
     failure_feedback: FailureFeedback = FailureFeedback.DETAILED
+    last_result: str | None = Field(default=None, exclude=True)
 
     class Config:
         arbitrary_types_allowed = True
 
     def invoke(self, query: str, k: int = 100, timeout: int = 60) -> str:
+        self.last_result = None
         if isinstance(k, str):
             k = int(k)
         if isinstance(timeout, str):
             timeout = int(timeout)            
-        result = ""
+        result: list[tuple[str | int | float | bytes | None, ...]] = []
         try:
-            def execute_query():
+            def execute_query() -> None:
                 with self.engine.connect() as conn:
-                    result = conn.execute(text(query))
-                    return result.fetchall()
-            
-            result = func_timeout(timeout, execute_query)
+                    result.extend(tuple(row) for row in conn.execute(text(query)).fetchall())
+
+            func_timeout(timeout, execute_query)
             n = len(result)
             base_response = str(result[:k])
             if n > k:
@@ -35,6 +36,8 @@ class SQLExecute(BaseModel):
                 base_response += (
                     f"\n\nNote: There are {additional} results not shown (out of {n} total results)."
                 )
+            # Publish only on the caller thread after successful execution.
+            self.last_result = str(result)
         except FunctionTimedOut:
             base_response = format_sql_failure(
                 self.failure_feedback,

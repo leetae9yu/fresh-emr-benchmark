@@ -6,6 +6,7 @@ from typing import Final, assert_never
 
 class ToolMode(StrEnum):
     FULL = "full"
+    SCHEMA_REMOVED = "schema_removed"
     SQL_ONLY = "sql_only"
     SQL_VALUE = "sql_value"
 
@@ -26,12 +27,18 @@ class SchemaGuidance(StrEnum):
     HIDDEN = "hidden"
 
 
+class RewardScope(StrEnum):
+    ANY = "any"
+    FINAL = "final"
+
+
 @dataclass(frozen=True, slots=True)
 class ExperimentConfig:
     tool_mode: ToolMode = ToolMode.FULL
     metadata_access: MetadataAccess = MetadataAccess.ALLOWED
     failure_feedback: FailureFeedback = FailureFeedback.DETAILED
     schema_guidance: SchemaGuidance = SchemaGuidance.BENCHMARK
+    reward_scope: RewardScope = RewardScope.ANY
 
 
 DEFAULT_EXPERIMENT_CONFIG: Final = ExperimentConfig()

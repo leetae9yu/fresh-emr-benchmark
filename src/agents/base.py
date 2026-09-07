@@ -1,16 +1,12 @@
 import abc
 from typing import Optional
 from src.envs.base import Env
-from src.types import AgentRunResult
-
-
-class AgentTimeoutError(Exception):
-    pass
+from src.types import AgentRunResult, AgentTimeoutError as AgentTimeoutError
 
 
 class Agent(abc.ABC):
     @abc.abstractmethod
     def run(
-        self, env: Env, task_index: Optional[int] = None, max_num_steps: int = 30, agent_timeout: int = 600
+        self, env: Env, task_index: Optional[str] = None, max_num_steps: int = 30, agent_timeout: int = 600
     ) -> AgentRunResult:
         raise NotImplementedError

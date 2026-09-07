@@ -1,12 +1,10 @@
 import time
-from litellm import completion
-from litellm.exceptions import RateLimitError
 from typing import List, Optional, Dict, Any
 
 from src.agents.base import Agent, AgentTimeoutError
 from src.envs.base import Env
-from src.types import AgentRunResult, EnvInfo
-from src.utils import get_action
+from src.types import AgentRunResult, EnvInfo, RewardInfo, AgentRunError
+from src.utils import get_action, add_costs, request_deadline, remaining_timeout
 
 TOOL_CALLING_INSTRUCTION = """Instruction:
 - You are a DB agent that helps users by answering their questions in natural language based on information from a database.
@@ -62,7 +60,9 @@ class ToolCallingAgent(Agent):
         model: str,
         api_base: Optional[str] = None,
         temperature: float = 0.0,
-        verbose: bool = False
+        verbose: bool = False,
+        reasoning_effort: Optional[str] = None,
+        max_completion_tokens: Optional[int] = None,
     ):
         self.tools_info = [tool for tool in tools_info if tool['function']["name"] in TOOL_SETS]
         self.rule = rule
@@ -70,6 +70,8 @@ class ToolCallingAgent(Agent):
         self.api_base = api_base
         self.temperature = temperature
         self.verbose = verbose
+        self.reasoning_effort = reasoning_effort
+        self.max_completion_tokens = max_completion_tokens
         tool_names = {
             tool["function"]["name"]
             for tool in self.tools_info
@@ -77,77 +79,60 @@ class ToolCallingAgent(Agent):
         instruction = _instruction_for_tools(tool_names)
         self.instruction = instruction + '\n' + self.rule
     def run(
-        self, env: Env, task_index: Optional[int] = None, max_num_steps: int = 30, agent_timeout: int = 600
+        self, env: Env, task_index: Optional[str] = None, max_num_steps: int = 30, agent_timeout: int = 600
     ) -> AgentRunResult:
+        deadline = time.monotonic() + agent_timeout
         agent_cost = 0.0
-        agent_elapsed = 0.0
-        env_reset_res = env.reset(task_index=task_index)
-        obs_user = env_reset_res.observation
-        env_info = EnvInfo(**env_reset_res.info.model_dump())
         reward = 0.0
-        messages: List[Dict[str, Any]] = [
-            {"role": "system", "content": self.instruction},
-            {"role": "user", "content": obs_user},
-        ]
-        
-        if self.verbose:
-            print(f"\n{'='*50}")
-            print(f"[USER]: {obs_user}")
-            print(f"{'='*50}")
-        
-        done = False
-        for step in range(1, max_num_steps + 1):
-            t0 = time.time()
-            next_message, action, done, cost = get_action(model = self.model,
-                                                          messages = messages,
-                                                          temperature =self.temperature,
-                                                          api_base =self.api_base,
-                                                          tools = self.tools_info)
-            agent_elapsed += time.time() - t0
-            agent_cost += cost
-            if agent_elapsed > agent_timeout:
-                raise AgentTimeoutError(f"Agent LLM cumulative time exceeded {agent_timeout}s ({agent_elapsed:.1f}s)")
-            env_response = env.step(action)
-            reward = env_response.reward
-            env_info = EnvInfo(**{**env_info.model_dump(), **env_response.info.model_dump()})
-            if action.name != 'respond':
-                next_message["tool_calls"] = next_message["tool_calls"][:1]
+        env_info = EnvInfo(task=env.task, reward_info=RewardInfo())
+        messages: List[Dict[str, Any]] = [{"role": "system", "content": self.instruction}]
+        try:
+            with request_deadline(deadline):
+                remaining_timeout(deadline)
+                env_reset_res = env.reset(task_index=task_index)
+                env_info = env_reset_res.info
+                messages.append({"role": "user", "content": env_reset_res.observation})
                 if self.verbose:
-                    tool_name = next_message["tool_calls"][0]["function"]["name"]
-                    tool_args = next_message["tool_calls"][0]["function"]["arguments"]
-                    print(f"[AGENT]: Using tool '{tool_name}' with args: {tool_args}")
-                    print(f"[TOOL RESULT]: {env_response.observation}")
-                    print(f"{'-'*30}")
-                
-                messages.extend(
-                    [
-                        next_message,
-                        {
-                            "role": "tool",
-                            "tool_call_id": next_message["tool_calls"][0]["id"],
-                            "name": next_message["tool_calls"][0]["function"]["name"],
-                            "content": env_response.observation,
-                        },
-                    ]
-                )
-            else:
-                if self.verbose:
-                    print(f"[AGENT]: {next_message.get('content', '')}")
-                    print(f"[USER]: {env_response.observation}")
-                    print(f"{'-'*30}")
-                
-                messages.extend(
-                    [
-                        next_message,
-                        {"role": "user", "content": env_response.observation},
-                    ]
-                )
-            if done or env_response.done:
-                break
+                    print(f"[USER]: {env_reset_res.observation}")
 
-        return AgentRunResult(
-            reward=reward,
-            messages=messages,
-            agent_cost=round(agent_cost, 8),
-            info=env_info
-        )
+                for step in range(1, max_num_steps + 1):
+                    next_message, action, done, cost = get_action(
+                        model=self.model, messages=messages, temperature=self.temperature,
+                        api_base=self.api_base, tools=self.tools_info, deadline=deadline,
+                        reasoning_effort=self.reasoning_effort,
+                        max_completion_tokens=self.max_completion_tokens,
+                    )
+                    agent_cost = add_costs(agent_cost, cost)
+                    if action.name != 'respond':
+                        next_message["tool_calls"] = next_message["tool_calls"][:1]
+                    # Record a completed model response even if the environment subsequently fails.
+                    messages.append(next_message)
+                    remaining_timeout(deadline)
+                    if action.name == "sql_execute":
+                        action.kwargs["timeout"] = remaining_timeout(
+                            deadline, float(action.kwargs.get("timeout", 60))
+                        )
+                    env_response = env.step(action)
+                    reward = env_response.reward
+                    env_info = env_response.info
+                    if action.name != 'respond':
+                        tool_call = next_message["tool_calls"][0]
+                        messages.append({"role": "tool", "tool_call_id": tool_call["id"],
+                                         "name": tool_call["function"]["name"],
+                                         "content": env_response.observation})
+                    else:
+                        messages.append({"role": "user", "content": env_response.observation})
+                    if self.verbose:
+                        print(f"[AGENT]: {next_message}")
+                        print(f"[ENV]: {env_response.observation}")
+                    remaining_timeout(deadline)
+                    if done or env_response.done:
+                        break
+        except Exception as error:
+            if isinstance(error, AgentRunError):
+                agent_cost = add_costs(agent_cost, error.cost)
+            error_type = AgentTimeoutError if isinstance(error, (AgentTimeoutError, TimeoutError)) else AgentRunError
+            partial = AgentRunResult(reward=reward, messages=messages, agent_cost=agent_cost, info=env_info)
+            raise error_type(str(error), result=partial) from error
+
+        return AgentRunResult(reward=reward, messages=messages, agent_cost=agent_cost, info=env_info)

@@ -1,11 +1,10 @@
 from typing import List, Dict, Any
 from dotenv import load_dotenv
 from typing import Optional
-from src.utils import load_json, get_completion
-from src.types import ValidationOutputFormat, ValidationResult
+from src.utils import get_completion, response_cost, add_costs, remaining_timeout, retry_wait, REQUEST_TIMEOUT
+from src.types import ValidationOutputFormat, ValidationResult, AgentTimeoutError
+from src.envs.base import Env
 from src.utils import count_agent_turns
-import traceback
-import io
 import json
 import time
 
@@ -135,14 +134,14 @@ def display_conversation_agent(messages):
     return "\n".join(log)
 
 
-def user_validator(messages: List[Dict[str, Any]], env: Dict[str, Any], model: str, api_base: Optional[str] = None, n=1, temperature=0.0, max_agent_turns=30) -> ValidationResult:
+def user_validator(messages: List[Dict[str, Any]], env: Env, model: str, api_base: Optional[str] = None, n=1, temperature=0.0, max_agent_turns=30) -> ValidationResult:
 
     if count_agent_turns(messages) == max_agent_turns:
         reason = {'broken_rule': '', 'evidence': '', 'explanation': 'The agent reached the maximum number of agent turns.'}
         return ValidationResult(decision='no_error', reason=json.dumps(reason), eval_cost=0.0)
     flag = False
     for message in messages:
-        if message['role'] == 'assistant' and message['content'] is None and message['tool_calls'] is None:
+        if message['role'] == 'assistant' and message.get('content') is None and not message.get('tool_calls'):
             flag = True
             break
     if flag:
@@ -156,52 +155,48 @@ def user_validator(messages: List[Dict[str, Any]], env: Dict[str, Any], model: s
                                                                  gold_sql=env.task.gold_sql)},
     ]
 
-    max_retries = 10
+    return _validate_completion(validator_messages, model, api_base, n, temperature, "user_error")
+
+
+def _validate_completion(messages, model, api_base, n, temperature, error_decision):
+    deadline = time.monotonic() + REQUEST_TIMEOUT
+    eval_cost = 0.0
+    max_retries = 3
+    last_error = None
     for attempt in range(max_retries):
         try:
-            response = get_completion(model=model, messages=validator_messages, temperature=temperature, response_format=ValidationOutputFormat, api_base=api_base, n=n)
-            break
-        except Exception as e:
-            tb_str = io.StringIO()
-            traceback.print_exc(file=tb_str)
-            error_details = tb_str.getvalue()
-            error_reason = f"Unexpected error during simulation: {error_details}"
-            if 'generate_requests_per_model_per_day' in error_reason:
-                print('Gemini-2.5-Flash exceeded the daily limit')
-                exit(0)
-            print(f"[Validator] Error (attempt {attempt + 1}/{max_retries}): {e}")
-            time.sleep(3)
-    else:
-        reason = {'broken_rule': '', 'evidence': '', 'explanation': 'Validator failed after max retries.'}
-        return ValidationResult(decision='no_error', reason=json.dumps(reason), eval_cost=0.0)
-    results = [load_json(m.message.content) for m in response.choices]
-
-    eval_cost = 0.0
-    if hasattr(response, '_hidden_params') and 'response_cost' in response._hidden_params and response._hidden_params["response_cost"]:
-        eval_cost = response._hidden_params["response_cost"]
-            
-    if sum([r['result'] == 'user_error' for r in results]) > 0:
-        decision = 'user_error'
-        reason = [r for r in results if r['result'] == 'user_error'][0]
-    else:
-        decision = 'no_error'
-        reason = [r for r in results if r['result'] == 'no_error'][0]
-
-    reason = {'broken_rule': reason['broken_rule'], 
-              'evidence': reason['evidence'],
-              'explanation': reason['explanation']}
-
-    return ValidationResult(decision=decision, reason=json.dumps(reason), eval_cost=eval_cost)
+            response = get_completion(model=model, messages=messages, temperature=temperature,
+                                      response_format=ValidationOutputFormat, api_base=api_base, n=n,
+                                      timeout=remaining_timeout(deadline))
+            eval_cost = add_costs(eval_cost, response_cost(response))
+            results = [ValidationOutputFormat.model_validate_json(choice.message.content or "")
+                       for choice in response.choices]
+            if len(results) != n or any(result.result not in {error_decision, "no_error"} for result in results):
+                raise ValueError("Validator returned missing or unsupported decisions")
+            reason = next((result for result in results if result.result == error_decision), results[0])
+            return ValidationResult(decision=reason.result,
+                                    reason=json.dumps(reason.model_dump(exclude={"result"})), eval_cost=eval_cost)
+        except Exception as error:
+            last_error = error
+            print(f"[Validator] Error (attempt {attempt + 1}/{max_retries}): {error}")
+            if isinstance(error, AgentTimeoutError) or attempt + 1 == max_retries:
+                break
+            try:
+                retry_wait(deadline)
+            except AgentTimeoutError as timeout_error:
+                last_error = timeout_error
+                break
+    return ValidationResult(decision="validator_error", reason=str(last_error), eval_cost=eval_cost)
 
 
-def agent_validator(messages: List[Dict[str, Any]], env: Dict[str, Any], model: str, api_base: Optional[str] = None, n=1, temperature=0.0, max_agent_turns=30) -> ValidationResult:
+def agent_validator(messages: List[Dict[str, Any]], env: Env, model: str, api_base: Optional[str] = None, n=1, temperature=0.0, max_agent_turns=30) -> ValidationResult:
 
     if count_agent_turns(messages) == max_agent_turns:
         reason = {'broken_rule': 'The DB agent must limit each conversation to 30 interactions (including user exchanges and tool calls) and 600 seconds total.', 'evidence': '', 'explanation': 'The agent reached the maximum number of agent turns.'}
         return ValidationResult(decision='agent_error', reason=json.dumps(reason), eval_cost=0.0)
     flag = False
     for message in messages:
-        if message['role'] == 'assistant' and message['content'] is None and message['tool_calls'] is None:
+        if message['role'] == 'assistant' and message.get('content') is None and not message.get('tool_calls'):
             flag = True
             break
     if flag:
@@ -224,23 +219,4 @@ def agent_validator(messages: List[Dict[str, Any]], env: Dict[str, Any], model: 
     if ('llama' in model.lower() or 'qwen' in model.lower()) and temperature == 0.0:
         temperature = 0.1
 
-    response = get_completion(model=model, messages=validator_messages, temperature=temperature, response_format=ValidationOutputFormat, api_base=api_base, n=n)
-    results = [load_json(m.message.content) for m in response.choices]
-
-    eval_cost = 0.0
-    if hasattr(response, '_hidden_params') and 'response_cost' in response._hidden_params and response._hidden_params["response_cost"]:
-        eval_cost = response._hidden_params["response_cost"]
-            
-    if sum([r['result'] == 'agent_error' for r in results]) > 0:
-        decision = 'agent_error'
-        reason = [r for r in results if r['result'] == 'agent_error'][0]
-    else:
-        decision = 'no_error'
-        reason = [r for r in results if r['result'] == 'no_error'][0]
-
-    reason = {'broken_rule': reason['broken_rule'], 
-              'evidence': reason['evidence'],
-              'explanation': reason['explanation']}
-
-    return ValidationResult(decision=decision, reason=json.dumps(reason), eval_cost=eval_cost)
-
+    return _validate_completion(validator_messages, model, api_base, n, temperature, "agent_error")

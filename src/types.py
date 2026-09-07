@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import List, Dict, Any, Optional
 
 class Task(BaseModel):
@@ -48,13 +48,15 @@ class CostInfo(BaseModel):
 class ValidationResult(BaseModel):
     decision: str
     reason: str
-    eval_cost: float
+    eval_cost: Optional[float] = None
 
 class EnvRunResult(BaseModel):
     db_id: str
     task_type: str
     task_id: str
     sample_id: str
+    trial_id: Optional[int] = Field(default=None, ge=1)
+    experiment_id: Optional[str] = None
     reward: Optional[float] = None
     info: EnvInfo
     messages: List[Dict[str, Any]]
@@ -77,3 +79,15 @@ class ReActOutputFormat(BaseModel):
 class ReflectionOutputFormat(BaseModel):
     reflection: str
     new_response: str
+
+
+class AgentRunError(Exception):
+    def __init__(self, message: str, *, result: Optional[AgentRunResult] = None,
+                 cost: Optional[float] = 0.0):
+        super().__init__(message)
+        self.result = result
+        self.cost = cost
+
+
+class AgentTimeoutError(AgentRunError):
+    pass

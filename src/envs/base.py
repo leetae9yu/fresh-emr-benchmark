@@ -1,11 +1,11 @@
 import re
 import random
-import logging
-from src.types import Tool
+from decimal import Decimal
+from src.envs.tools import Tool
 from src.utils import process_result, process_answer
-from typing import Dict, List, Type, Optional
+from typing import Dict, List, Type, Optional, TypeVar, assert_never
 
-import sqlite3
+from src.experiment import DEFAULT_EXPERIMENT_CONFIG, ExperimentConfig, RewardScope
 from src.envs.user import load_user
 from src.types import (
     Action,
@@ -28,6 +28,27 @@ numeric_to_words = {'two hundred and forty-seven': '247', 'two hundred forty-sev
                     'fourteen': '14', 'sixteen': '16', 'nineteen': '19',
                     'zero': '0', 'two': '2', 'one': '1'}
 
+_RewardCandidate = TypeVar('_RewardCandidate')
+_NUMBER = re.compile(r'(?<![\w.+-])[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?(?![\w.])')
+
+
+def _answer_matches(gold_answer: list[str], answer: str) -> bool:
+    """Match numeric values exactly without losing benchmark text/list support."""
+    remaining = numeric_to_words.get(answer.lower(), answer.lower())
+    for gold in sorted(gold_answer, key=len, reverse=True):
+        if _NUMBER.fullmatch(gold):
+            number = next((match for match in _NUMBER.finditer(remaining)
+                           if Decimal(match.group()) == Decimal(gold)), None)
+            if number is None:
+                return False
+            remaining = remaining[:number.start()] + ' ' + remaining[number.end():]
+        else:
+            if gold not in remaining:
+                return False
+            remaining = remaining.replace(gold, ' ', 1)
+    return not re.sub(r'\b(?:and|days?)\b|[,;%]', '', remaining).strip(' .\n\t\r')
+
+
 class Env(object):
     def __init__(
         self,
@@ -41,7 +62,8 @@ class Env(object):
         api_base: Optional[str] = None,
         task_index: Optional[str] = None,
         rule: Optional[str] = "",
-        retry_reason: Optional[List[str]] = None
+        retry_reason: Optional[List[str]] = None,
+        experiment: ExperimentConfig = DEFAULT_EXPERIMENT_CONFIG,
     ) -> None:
         super().__init__()
         if retry_reason is None:
@@ -55,6 +77,8 @@ class Env(object):
             user_strategy=user_strategy, model=user_model, temperature=user_temperature, api_base=api_base, retry_reason=retry_reason
         )
         self.actions: List[Action] = []
+        self._sql_observations: list[tuple[str, str, str | None]] = []
+        self.experiment = experiment
         self.db_path = db_path
         self.task_type = task_type
         self.tasks = tasks
@@ -72,6 +96,7 @@ class Env(object):
             self.task_index = random.randint(0, len(self.tasks)-1)
         self.task = self.tasks[self.task_index]
         self.actions = []
+        self._sql_observations = []
         initial_observation = self.user.reset(self.task)
         return EnvResponse(
             observation=initial_observation,
@@ -86,6 +111,7 @@ class Env(object):
         info = EnvInfo(task=self.task, reward_info=RewardInfo())
         reward = 0.0
         done = False
+        sql_result: str | None = None
         if action.name == 'respond':
             observation = self.user.step(action.kwargs["content"])
             if observation:
@@ -95,10 +121,14 @@ class Env(object):
         elif action.name in self.tools_map:
             try:
                 observation = self.tools_map[action.name].invoke(**action.kwargs)
+                if action.name == 'sql_execute':
+                    sql_result = getattr(self.tools_map[action.name], 'last_result', None)
             except Exception as e:
                 observation = f"Error: {e}"
         else:
             observation = f"Unknown action {action.name}"
+        if action.name == 'sql_execute':
+            self._sql_observations.append((str(action.kwargs.get('query', '')).strip(), observation, sql_result))
         if done:
             if self.task_type == 'incre':
                 reward_info = self.calculate_reward_sql()
@@ -114,36 +144,40 @@ class Env(object):
             done=done,
             info=info)
 
+    def _reward_candidates(self, candidates: list[_RewardCandidate]) -> list[_RewardCandidate]:
+        match self.experiment.reward_scope:
+            case RewardScope.ANY:
+                return candidates
+            case RewardScope.FINAL:
+                return candidates[-1:]
+            case unreachable:
+                assert_never(unreachable)
+
     def calculate_reward_sql(self) -> RewardInfo:
 
         reward = 0.0
         gold_answer = process_result(self.task.gold_answer)
         pred_sql = []
         pred_answer = []
-        sql_actions = [action.kwargs["query"].strip() for action in self.actions if action.name == 'sql_execute' and 'query' in action.kwargs and action.kwargs['query'] is not None]
-        if len(sql_actions) > 0:
-            for sql in sql_actions:
-                conn = sqlite3.connect(f"file:{self.db_path}?immutable=1", uri=True)
-                try:
-                    cursor = conn.cursor()
-                    cursor.execute(sql)
-                    pred_sql_answer = cursor.fetchall()
-                    pred_sql_answer = process_result(pred_sql_answer)
-                    if pred_sql_answer and len(pred_sql_answer) > 0:
-                        converted_pred_sql_answer = list(zip(*pred_sql_answer))
-                        for i in range(len(converted_pred_sql_answer)):
-                            pred_sql.append(sql)
-                            pred_answer.append(converted_pred_sql_answer[i])
-                            if sorted(set([r for r in converted_pred_sql_answer[i] if r != 'None'])) == sorted(set([el[0] for el in gold_answer])):
-                                reward = 1.0
-                                break
-                except sqlite3.Error as e:
-                    pred_sql.append(sql)
-                    pred_answer.append(str(e))
-                finally:
-                    conn.close()
-                if reward == 1.0:
+        for sql, observation, full_result in self._reward_candidates(self._sql_observations):
+            if full_result is None:
+                pred_sql.append(sql)
+                pred_answer.append(observation)
+                continue
+            # Normalize all live rows before the benchmark's sorting/100-row cap.
+            rows = process_result(full_result)
+            if isinstance(rows, str):
+                pred_sql.append(sql)
+                pred_answer.append(observation)
+                continue
+            for column in zip(*rows):
+                pred_sql.append(sql)
+                pred_answer.append(column)
+                if {value for value in column if value != 'None'} == {row[0] for row in gold_answer}:
+                    reward = 1.0
                     break
+            if reward == 1.0:
+                break
 
         reward_info = RewardInfo(reward=reward, info={'pred_sql': pred_sql, 'pred_answer': pred_answer})
         return reward_info
@@ -151,41 +185,20 @@ class Env(object):
     def calculate_reward_ans(self) -> RewardInfo:
 
         reward = 0.0
-        gold_answer = [process_answer(ans[0]) for ans in process_result(self.task.gold_answer)]
-        gold_answer = [numeric_to_words[str(gold_ans)] if str(gold_ans) in numeric_to_words else gold_ans for gold_ans in gold_answer]
+        gold_answer = [str(process_answer(ans[0])) for ans in process_result(self.task.gold_answer)]
+        gold_answer = [numeric_to_words.get(gold_ans, gold_ans) for gold_ans in gold_answer]
         pred_response = []
         pred_answer = []
         response_actions = [action.kwargs["content"] for action in self.actions if action.name == 'respond' and 'content' in action.kwargs and action.kwargs['content'] is not None]
         if len(response_actions) > 0:
-            for response in response_actions:
+            for response in self._reward_candidates(response_actions):
                 pred_response.append(response)
                 pattern = r'(?:<answer>|```answer|```\s*\n)(.*?)(?:</answer>|```)'
                 match = re.search(pattern, response, re.DOTALL)
                 if match:
-                    reward = 1.0
-                    pred_ans = match.group(1).strip()                                        
+                    pred_ans = match.group(1).strip()
                     pred_answer.append(pred_ans)
-                    pred_ans = pred_ans.lower()
-                    for gold_ans in gold_answer:                        
-                        if str(pred_ans) in numeric_to_words:
-                            pred_ans = numeric_to_words[str(pred_ans)]
-                        if str(gold_ans).lower() not in str(pred_ans).lower():
-                            reward = 0.0
-                            break
-                    
-                    if reward == 1.0:
-                        # to avoid false positive
-                        pred_ans_to_check = pred_ans
-                        for gold_ans in sorted(gold_answer, key=len)[::-1]:
-                            pred_ans_to_check = pred_ans_to_check.replace(gold_ans, '', 1)
-                        patterns = ['and', ',', ';', '.0000', '.000', '.00', '.0', '%', 'days', 'day'] # order matters
-                        for pattern in patterns:
-                            pred_ans_to_check = pred_ans_to_check.replace(pattern, '')
-                        pred_ans_to_check = pred_ans_to_check.rstrip('0').rstrip('.').strip()
-                        if len(pred_ans_to_check) == 0:
-                            reward = 1.0
-                        else:
-                            reward = 0.0
+                    reward = float(_answer_matches(gold_answer, pred_ans))
 
                 else:
                     pred_answer.append('N/A')

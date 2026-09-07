@@ -1,11 +1,10 @@
 import abc
 import json
-import time
 from litellm.exceptions import ContextWindowExceededError
 from typing import Optional, List, Dict, Any
-from src.utils import get_completion
+from src.utils import get_completion, response_cost, add_costs, retry_wait
 from src.types import ReflectionOutputFormat
-from src.types import Task
+from src.types import Task, AgentRunError
 
 
 class BaseUser(abc.ABC):
@@ -18,7 +17,7 @@ class BaseUser(abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def get_total_cost(self) -> float:
+    def get_total_cost(self) -> Optional[float]:
         raise NotImplementedError
 
 
@@ -34,8 +33,8 @@ class HumanUser(BaseUser):
     def step(self, content: str) -> str:
         pass
 
-    def get_total_cost(self) -> float:
-        return round(self.total_cost, 8)
+    def get_total_cost(self) -> Optional[float]:
+        return self.total_cost
 
 
 def check_user_error(content: str):
@@ -60,11 +59,10 @@ class LLMUser(BaseUser):
         self.task_type = None
 
     def generate_next_message(self, messages: List[Dict[str, Any]]) -> str:
-        for _ in range(self.max_attempts):
+        for attempt in range(self.max_attempts):
             try:
                 res = get_completion(model=self.model, messages=messages, temperature=self.temperature, api_base=self.api_base)
-                if hasattr(res, '_hidden_params') and 'response_cost' in res._hidden_params and res._hidden_params["response_cost"]:
-                    self.total_cost += res._hidden_params["response_cost"]
+                self.total_cost = add_costs(self.total_cost, response_cost(res))
                 next_message = res.choices[0].message.model_dump()
                 flag_error, error_msg  = check_user_error(next_message["content"])
                 if flag_error:
@@ -76,8 +74,12 @@ class LLMUser(BaseUser):
             except ContextWindowExceededError as e:
                 print("⚠️ Context window exceeded:", e)
                 return '###END###'
+            except AgentRunError:
+                raise
             except Exception as e:
-                time.sleep(3)
+                if attempt + 1 == self.max_attempts:
+                    raise AgentRunError(f"User generation failed after {self.max_attempts} attempts: {e}") from e
+                retry_wait()
         return '###END###'
 
     def build_system_prompt(self, instruction: Optional[str]) -> str:
@@ -119,8 +121,8 @@ Rules:
         new_message = self.generate_next_message(self.messages)
         return new_message
 
-    def get_total_cost(self) -> float:
-        return round(self.total_cost, 8)
+    def get_total_cost(self) -> Optional[float]:
+        return self.total_cost
 
 
 class VerifierUser(LLMUser):
@@ -130,11 +132,10 @@ class VerifierUser(LLMUser):
 
     def generate_next_message(self, messages: List[Dict[str, Any]]) -> str:
         last_message = None
-        for _ in range(self.max_attempts):
+        for attempt in range(self.max_attempts):
             try:
                 res = get_completion(model=self.model, messages=messages, temperature=self.temperature, api_base=self.api_base)
-                if hasattr(res, '_hidden_params') and 'response_cost' in res._hidden_params and res._hidden_params["response_cost"]:
-                    self.total_cost += res._hidden_params["response_cost"]
+                self.total_cost = add_costs(self.total_cost, response_cost(res))
                 next_message = res.choices[0].message.model_dump()
                 flag_error, error_msg = check_user_error(next_message["content"])
                 if flag_error:
@@ -152,8 +153,12 @@ class VerifierUser(LLMUser):
             except ContextWindowExceededError as e:
                 print("⚠️ Context window exceeded:", e)
                 return '###END###'
+            except AgentRunError:
+                raise
             except Exception as e:
-                time.sleep(3)
+                if attempt + 1 == self.max_attempts:
+                    raise AgentRunError(f"User generation failed after {self.max_attempts} attempts: {e}") from e
+                retry_wait()
         if last_message is not None:
             self.messages.append(last_message)
             return last_message["content"].strip()
@@ -187,8 +192,7 @@ User Response:
         ]
 
         res = get_completion(model=self.model, messages=verifier_messages, temperature=0.0, api_base=self.api_base)
-        if hasattr(res, '_hidden_params') and 'response_cost' in res._hidden_params and res._hidden_params["response_cost"]:
-            self.total_cost += res._hidden_params["response_cost"]
+        self.total_cost = add_costs(self.total_cost, response_cost(res))
         next_message = res.choices[0].message.model_dump()
         return next_message["content"] and 'yes' == next_message["content"].strip().lower()
 
@@ -210,11 +214,10 @@ class ReflectionUser(VerifierUser):
         self.reflection_max_attempts = 3
 
     def generate_next_message(self, messages: List[Dict[str, Any]]) -> str:
-        for _ in range(self.max_attempts):
+        for attempt in range(self.max_attempts):
             try:
                 res = get_completion(model=self.model, messages=messages, temperature=self.temperature, api_base=self.api_base)
-                if hasattr(res, '_hidden_params') and 'response_cost' in res._hidden_params and res._hidden_params["response_cost"]:
-                    self.total_cost += res._hidden_params["response_cost"]
+                self.total_cost = add_costs(self.total_cost, response_cost(res))
                 next_message = res.choices[0].message.model_dump()
                 flag_error, error_msg = check_user_error(next_message["content"])
                 if flag_error:
@@ -242,8 +245,12 @@ class ReflectionUser(VerifierUser):
             except ContextWindowExceededError as e:
                 print("⚠️ Context window exceeded:", e)
                 return '###END###'
+            except AgentRunError:
+                raise
             except Exception as e:
-                time.sleep(3)
+                if attempt + 1 == self.max_attempts:
+                    raise AgentRunError(f"User generation failed after {self.max_attempts} attempts: {e}") from e
+                retry_wait()
         return '###END###'
 
     def reflection(self, messages: List[Dict[str, Any]], response: str):
@@ -274,8 +281,7 @@ User Response:
         ]
 
         res = get_completion(model=self.model, messages=reflection_messages, temperature=0.0, api_base=self.api_base, response_format=ReflectionOutputFormat)
-        if hasattr(res, '_hidden_params') and 'response_cost' in res._hidden_params and res._hidden_params["response_cost"]:
-            self.total_cost += res._hidden_params["response_cost"]
+        self.total_cost = add_costs(self.total_cost, response_cost(res))
         next_message = res.choices[0].message.model_dump()
         return json.loads(next_message["content"])['new_response'].strip()
 

@@ -81,27 +81,7 @@ class eICUStarEnv(Env):
         match experiment.tool_mode:
             case ToolMode.SQL_ONLY:
                 tools = [sql_execute]
-            case ToolMode.SQL_VALUE:
-                faiss_path = 'src/envs/eicu_star/faiss_index_eicu_star-'+parse_model_name(embedding_model)
-                columns_to_retrieve = {
-                    "allergy_reaction": ["drug_name", "allergy_name"],
-                    "condition": ["condition_name"],
-                    "fluid_balance": ["fluid_label"],
-                    "lab": ["lab_name"],
-                    "prescription": ["drug_name"],
-                    "icupatient": ["ethnicity", "hospital_admission_source"],
-                    "treatment": ["treatment_name"]
-                }
-                vector_store = initialize_vector_store(engine, embedding_model, faiss_path, columns_to_retrieve)
-                value_similarity_search = ValueSimilaritySearch(
-                    vector_store=vector_store,
-                    schema_description=None,
-                )
-                tools = [sql_execute, value_similarity_search]
-            case ToolMode.FULL:
-                table_search = TableSearch(engine=engine)
-                column_search = ColumnSearch(engine=engine)
-                value_substring_search = ValueSubstringSearch(engine=engine)
+            case ToolMode.SQL_VALUE | ToolMode.FULL | ToolMode.SCHEMA_REMOVED:
                 faiss_path = 'src/envs/eicu_star/faiss_index_eicu_star-'+parse_model_name(embedding_model)
                 columns_to_retrieve = {
                     "allergy_reaction": ["drug_name", "allergy_name"],
@@ -114,15 +94,22 @@ class eICUStarEnv(Env):
                 }
                 vector_store = initialize_vector_store(engine, embedding_model, faiss_path, columns_to_retrieve)
                 value_similarity_search = ValueSimilaritySearch(vector_store=vector_store)
-                web_search = WebSearch()
-                tools = [
-                    table_search,
-                    column_search,
-                    sql_execute,
-                    value_substring_search,
-                    value_similarity_search,
-                    web_search,
-                ]
+                if experiment.tool_mode != ToolMode.FULL:
+                    value_similarity_search.schema_description = None
+                tools = [sql_execute, value_similarity_search]
+                if experiment.tool_mode != ToolMode.SQL_VALUE:
+                    tools = [
+                        sql_execute,
+                        ValueSubstringSearch(engine=engine),
+                        value_similarity_search,
+                        WebSearch(),
+                    ]
+                if experiment.tool_mode == ToolMode.FULL:
+                    tools = [
+                        TableSearch(engine=engine),
+                        ColumnSearch(engine=engine),
+                        *tools,
+                    ]
             case unreachable:
                 assert_never(unreachable)
 
@@ -137,5 +124,6 @@ class eICUStarEnv(Env):
             task_index=task_index,
             rule=rules,
             api_base=api_base,
-            retry_reason=retry_reason
+            retry_reason=retry_reason,
+            experiment=experiment,
         )

@@ -19,6 +19,15 @@ results/
 
 # Analysis scripts and outputs (development only)
 tests/
+!tests/
+tests/*
+!tests/test_metric_regressions.py
+!tests/test_resume_regressions.py
+!tests/test_config_runner.py
+!tests/test_reward_regressions.py
+!tests/test_schema_removed.py
+!tests/test_runtime_regressions.py
+!tests/test_experiment_cli.py
 .pytest_cache/
 .ruff_cache/
 .coverage

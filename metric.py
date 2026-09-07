@@ -1,5 +1,6 @@
 import os
 import json
+import sys
 from collections import Counter, defaultdict
 from argparse import ArgumentParser, Namespace
 from typing import List, Dict, Any
@@ -11,39 +12,57 @@ def load_result_file(file_path: str) -> List[EnvRunResult]:
     """Load results from a JSON file."""
     with open(file_path, 'r') as f:
         data = [json.loads(line) for line in f if line.strip()]
-    return [EnvRunResult(**result) for result in data]
+    latest = {result["sample_id"]: EnvRunResult(**result) for result in data}
+    return list(latest.values())
 
 
-def calculate_metrics(results: List[EnvRunResult], num_trials: int = 5) -> Dict[str, Any]:
+def calculate_metrics(
+    results: List[EnvRunResult],
+    num_trials: int = 5,
+    expected_tasks: set[tuple[str, str, str]] | None = None,
+) -> Dict[str, Any]:
     """Calculate success rate and pass@k metrics."""
-    
-    # Filter valid results
-    valid_results = [r for r in results if r.reward is not None]
 
-    # Count successes per task
-    total_counts: Dict[str, int] = {}
-    success_counts: Dict[str, int] = {}
-    
+    attempts = list({result.sample_id: result for result in results}.values())
+    observed_tasks = {(r.db_id, r.task_type, r.task_id) for r in attempts}
+    tasks = observed_tasks if expected_tasks is None else expected_tasks
+    if num_trials < 1 or not tasks:
+        message = "Evaluation requires positive trials and a nonempty task cohort."
+        raise ValueError(message)
+    if observed_tasks - tasks:
+        message = f"Unexpected tasks in results: {sorted(observed_tasks - tasks)}"
+        raise ValueError(message)
+
+    valid_results = [r for r in attempts if r.reward is not None]
+    total_counts = dict.fromkeys(tasks, 0)
+    success_counts = dict.fromkeys(tasks, 0)
+    trial_slots: dict[tuple[str, str, str], set[int | None]] = {
+        task: set() for task in tasks
+    }
     for r in valid_results:
-        key = f'{r.db_id}-{r.task_type}-{r.task_id}'
-        if key not in total_counts:
-            total_counts[key] = 0
+        key = (r.db_id, r.task_type, r.task_id)
+        trial_id = getattr(r, "trial_id", None)
+        if trial_id is not None and trial_id in trial_slots[key]:
+            message = f"Duplicate valid trial slot: {key}, trial_id={trial_id}"
+            raise ValueError(message)
+        trial_slots[key].add(trial_id)
         total_counts[key] += 1
-        if key not in success_counts:
-            success_counts[key] = 0
         if r.reward == 1:
             success_counts[key] += 1
+    if any(None in slots and len(slots) > 1 for slots in trial_slots.values()):
+        message = "Indexed and legacy unindexed trials cannot be pooled for one task."
+        raise ValueError(message)
 
     invalid_tasks = [(key, count) for key, count in total_counts.items() if count != num_trials]
     if invalid_tasks:
-        for key, count in invalid_tasks:
-            print(f"Task {key} has {count} trials. {num_trials} successful trials required for evaluation.")
-        raise ValueError(f"Not all tasks have {num_trials} successful trials for evaluation.")
+        message = f"Expected {num_trials} valid trials per task; incomplete or duplicate counts: {sorted(invalid_tasks)}"
+        raise ValueError(message)
     
     # Calculate basic metrics
     total_trajectories = len(valid_results)
     total_tasks = len(success_counts)
-    avg_reward = round(sum(r.reward for r in valid_results) / total_trajectories * 100, 1)
+    rewards = [r.reward for r in valid_results if r.reward is not None]
+    avg_reward = round(sum(rewards) / total_trajectories * 100, 1)
     
     # Calculate pass@k metrics
     denom_cache = {k: comb(num_trials, k) for k in range(1, num_trials + 1)}
@@ -69,13 +88,16 @@ def calculate_metrics(results: List[EnvRunResult], num_trials: int = 5) -> Dict[
         pass_hat_k[k] = round(all_succ * 100, 1)
     
     # Calculate cost statistics
-    total_cost = sum(r.cost.total_cost for r in valid_results if r.cost.total_cost is not None)
-    agent_cost = sum(r.cost.agent_cost for r in valid_results if r.cost.agent_cost is not None)
-    user_cost = sum(r.cost.user_cost for r in valid_results if r.cost.user_cost is not None)
-    eval_cost = sum(r.cost.eval_cost for r in valid_results if r.cost.eval_cost is not None)
+    total_cost = sum(r.cost.total_cost for r in attempts if r.cost.total_cost is not None)
+    agent_cost = sum(r.cost.agent_cost for r in attempts if r.cost.agent_cost is not None)
+    user_cost = sum(r.cost.user_cost for r in attempts if r.cost.user_cost is not None)
+    eval_cost = sum(r.cost.eval_cost for r in attempts if r.cost.eval_cost is not None)
+    missing_total = sum(r.cost.total_cost is None for r in attempts)
     
     return {
         'total_trajectories': total_trajectories,
+        'total_attempts': len(attempts),
+        'invalid_attempts': len(attempts) - total_trajectories,
         'total_tasks': total_tasks,
         'avg_trials_per_task': round(total_trajectories / total_tasks, 2),
         'success_rate': avg_reward,
@@ -87,7 +109,12 @@ def calculate_metrics(results: List[EnvRunResult], num_trials: int = 5) -> Dict[
             'agent': round(agent_cost, 4),
             'user': round(user_cost, 4),
             'eval': round(eval_cost, 4),
-            'avg_per_trajectory': round(total_cost / total_trajectories, 4)
+            'avg_per_trajectory': round(total_cost / total_trajectories, 4),
+            'missing_total': missing_total,
+            'complete': missing_total == 0,
+            'missing_agent': sum(r.cost.agent_cost is None for r in attempts),
+            'missing_user': sum(r.cost.user_cost is None for r in attempts),
+            'missing_eval': sum(r.cost.eval_cost is None for r in attempts),
         }
     }
 
@@ -132,6 +159,7 @@ def print_metrics(metrics: Dict[str, Any], title: str = "Overall Metrics"):
     
     print(f"\n📊 Basic Statistics:")
     print(f"  • Total Trajectories: {metrics['total_trajectories']}")
+    print(f"  • Saved attempts (including invalid): {metrics['total_attempts']}")
     print(f"  • Total Tasks: {metrics['total_tasks']}")
     print(f"  • Avg Trials per Task: {metrics['avg_trials_per_task']}")
     print(f"  • Success Rate (SR): {metrics['success_rate']}%")
@@ -149,7 +177,9 @@ def print_metrics(metrics: Dict[str, Any], title: str = "Overall Metrics"):
         print(f"  • Gap-{k}: {metrics['gap'][k]}%")
     
     print(f"\n💰 Cost Statistics:")
-    print(f"  • Total Cost: ${metrics['costs']['total']:.4f}")
+    print(f"  • Recorded cost across all attempts: ${metrics['costs']['total']:.4f}")
+    if not metrics['costs']['complete']:
+        print(f"  • Incomplete cost: {metrics['costs']['missing_total']} attempts have unknown total cost.")
     print(f"  • Agent Cost: ${metrics['costs']['agent']:.4f}")
     print(f"  • User Cost: ${metrics['costs']['user']:.4f}")
     print(f"  • Eval Cost: ${metrics['costs']['eval']:.4f}")
@@ -163,13 +193,14 @@ def main():
     parser.add_argument("--num_trials", type=int, default=5, help="Number of trials (k) used in the experiment")
     parser.add_argument("--by_env", action="store_true", help="Show metrics broken down by environment")
     parser.add_argument("--by_task_type", action="store_true", help="Show metrics broken down by task type")
+    parser.add_argument("--expected_tasks", type=str, help="JSON file of expected [db_id, task_type, task_id] triples")
     
     args = parser.parse_args()
     
     # Check if file exists
     if not os.path.exists(args.result_file):
         print(f"Error: File '{args.result_file}' not found.")
-        return
+        return 2
     
     # Load results
     print(f"Loading results from: {args.result_file}")
@@ -177,7 +208,15 @@ def main():
     print(f"Loaded {len(results)} results")
     
     # Calculate overall metrics
-    overall_metrics = calculate_metrics(results, args.num_trials)
+    expected_tasks = None
+    if args.expected_tasks:
+        from pydantic import TypeAdapter
+
+        with open(args.expected_tasks, encoding="utf-8") as expected_file:
+            expected_tasks = set(
+                TypeAdapter(list[tuple[str, str, str]]).validate_json(expected_file.read())
+            )
+    overall_metrics = calculate_metrics(results, args.num_trials, expected_tasks)
     
     print_metrics(overall_metrics, "Overall Metrics")
     
@@ -190,8 +229,9 @@ def main():
         type_metrics = calculate_metrics_by_task_type(results, args.num_trials)
         for task_type, metrics in type_metrics.items():
             print_metrics(metrics, f"Task Type: {task_type}")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
 

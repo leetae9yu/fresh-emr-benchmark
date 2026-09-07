@@ -4,14 +4,12 @@ sys.stdout.reconfigure(line_buffering=True)
 import os
 import uuid
 from tqdm import tqdm
-from collections import Counter
 from argparse import ArgumentParser, Namespace
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import threading
 from src.agents.base import AgentTimeoutError
 import litellm
 import traceback
-import io
 litellm.suppress_debug_info = True
 file_lock = threading.Lock()
 
@@ -25,9 +23,10 @@ from src.experiment import (
     MetadataAccess,
     SchemaGuidance,
     ToolMode,
+    RewardScope,
 )
-from src.types import EnvRunResult, CostInfo, ValidationResult
-from src.utils import save_checkpoint, display_metrics, update_checkpoint, load_results, dummy_error_result, get_ckpt_name
+from src.types import EnvRunResult, CostInfo, ValidationResult, AgentRunError, EnvInfo, RewardInfo
+from src.utils import save_checkpoint, display_metrics, update_checkpoint, load_results, get_ckpt_name, add_costs, experiment_fingerprint
 from validator import user_validator
 from dotenv import load_dotenv
 
@@ -71,7 +70,28 @@ def parse_arguments() -> Namespace:
     parser.add_argument("--metadata_access", choices=[mode.value for mode in MetadataAccess], default=MetadataAccess.ALLOWED.value, help="SQLite metadata access policy")
     parser.add_argument("--failure_feedback", choices=[mode.value for mode in FailureFeedback], default=FailureFeedback.DETAILED.value, help="SQL failure response policy")
     parser.add_argument("--schema_guidance", choices=[mode.value for mode in SchemaGuidance], default=SchemaGuidance.BENCHMARK.value, help="Database-specific prompt guidance")
-    return parser.parse_args()
+    parser.add_argument("--trial_id", type=int, default=None, help="Explicit trial slot (requires num_trials=1)")
+    parser.add_argument("--reasoning_effort", choices=["none", "minimal", "low", "medium", "high", "default"], default=None)
+    parser.add_argument("--max_completion_tokens", type=int, default=None)
+    parser.add_argument("--reward_scope", choices=[scope.value for scope in RewardScope], default=RewardScope.ANY.value)
+    config = parser.parse_args()
+    try:
+        _validate_runtime_config(config)
+    except ValueError as error:
+        parser.error(str(error))
+    return config
+
+
+def _validate_runtime_config(config: Namespace):
+    for name in ("num_trials", "max_concurrency", "max_agent_turns", "max_retry", "timeout", "validation_trials"):
+        if getattr(config, name) < 1:
+            raise ValueError(f"{name} must be >= 1")
+    trial_id = getattr(config, "trial_id", None)
+    if trial_id is not None and (trial_id < 1 or config.num_trials != 1):
+        raise ValueError("trial_id must be >= 1 and requires num_trials=1")
+    max_tokens = getattr(config, "max_completion_tokens", None)
+    if max_tokens is not None and max_tokens < 1:
+        raise ValueError("max_completion_tokens must be >= 1")
 
 
 def run(config: Namespace):
@@ -97,11 +117,13 @@ def run(config: Namespace):
 
 
 def _run_single(config: Namespace):
+    _validate_runtime_config(config)
     experiment = ExperimentConfig(
-        tool_mode=ToolMode(config.tool_mode),
-        metadata_access=MetadataAccess(config.metadata_access),
-        failure_feedback=FailureFeedback(config.failure_feedback),
-        schema_guidance=SchemaGuidance(config.schema_guidance),
+        tool_mode=ToolMode(getattr(config, "tool_mode", "full")),
+        metadata_access=MetadataAccess(getattr(config, "metadata_access", "allowed")),
+        failure_feedback=FailureFeedback(getattr(config, "failure_feedback", "detailed")),
+        schema_guidance=SchemaGuidance(getattr(config, "schema_guidance", "benchmark")),
+        reward_scope=RewardScope(getattr(config, "reward_scope", "any")),
     )
 
     if config.env == "all":
@@ -138,7 +160,7 @@ def _run_single(config: Namespace):
             user_strategy=config.user_strategy,
             user_model=config.user_model,
             user_temperature=config.user_temperature,
-            embedding_model=config.embedding_model,
+            embedding_model=getattr(config, "embedding_model", "text-embedding-3-large"),
             api_base=config.api_base,
             experiment=experiment,
         )
@@ -149,13 +171,17 @@ def _run_single(config: Namespace):
             temperature=config.temperature,
             agent_strategy=config.agent_strategy,
             rule=envs[env_name].rule,
-            verbose=config.verbose
+            verbose=config.verbose,
+            reasoning_effort=getattr(config, "reasoning_effort", None),
+            max_completion_tokens=getattr(config, "max_completion_tokens", None),
         )
         
         # Determine task indices for this environment
         total_tasks = len(envs[env_name].tasks)
         end_index = total_tasks if config.end_index == -1 else min(config.end_index, total_tasks)
         idx = config.task_ids if config.task_ids else list(range(config.start_index, end_index))
+        if len(idx) != len(set(idx)) or any(task_id < 0 or task_id >= total_tasks for task_id in idx):
+            raise ValueError(f"Invalid or duplicate task indices for {env_name}: {idx}")
         env_task_indices[env_name] = idx
         
         task_info = f"{config.task_ids}" if config.task_ids else f"{config.start_index} to {end_index}"
@@ -169,169 +195,116 @@ def _run_single(config: Namespace):
     
     results = load_results(config, idx=[str(i) for i in all_task_ids])
     
-    # Build task list to run
-    if config.env in {"all", "all_original"}:
-        idx_to_run = []
-        for env_name in envs_to_run:
-            env_task_pairs = [(env_name, task_id) for task_id in env_task_indices[env_name]]
-            idx_to_run.extend(env_task_pairs)
-        
-        idx_to_run = idx_to_run * config.num_trials
-        
-        existing_pairs = [(r.db_id, int(r.task_id)) for r in results if r.reward is not None]
-        result_counter = Counter(idx_to_run) - Counter(existing_pairs)
-        idx_to_run = list(result_counter.elements())
-        
-    else:
-        # Single environment
-        env_name = config.env
-        idx = env_task_indices[env_name]
-        idx_to_run = idx * config.num_trials
-        existing_idx = [int(r.task_id) for r in results if r.reward is not None]
-        result_counter = Counter(idx_to_run) - Counter(existing_idx)
-        idx_to_run = list(result_counter.elements())
+    expected_tasks = {(env_name, config.task_type, str(task_id))
+                      for env_name, indices in env_task_indices.items() for task_id in indices}
+    if any(result.trial_id is None for result in results):
+        raise ValueError("Checkpoint rows lack explicit trial_id; migrate trial slots before resuming")
+    trial_id = getattr(config, "trial_id", None)
+    trial_ids = [trial_id] if trial_id is not None else list(range(1, config.num_trials + 1))
+    requested_slots = [(env_name, task_id, trial)
+                       for env_name, indices in env_task_indices.items()
+                       for task_id in indices for trial in trial_ids]
+    completed_slots = [(result.db_id, int(result.task_id), result.trial_id)
+                       for result in results if result.reward is not None]
+    if len(completed_slots) != len(set(completed_slots)):
+        raise ValueError("Checkpoint contains duplicate completed trial slots")
+    if any(slot not in requested_slots for slot in completed_slots):
+        raise ValueError("Checkpoint contains unrequested trial slots")
+    idx_to_run = [slot for slot in requested_slots if slot not in set(completed_slots)]
 
-    if len(idx_to_run) == 0:
+    if not idx_to_run:
         print("No new tasks to run. All tasks have been loaded from checkpoint.")
-        display_metrics(results, config.num_trials)
+        display_metrics(results, config.num_trials, expected_tasks=expected_tasks)
         return
 
     save_checkpoint(ckpt_path, results)
+    identity = experiment_fingerprint(config)
 
-    def _run(task_item) -> EnvRunResult:
-        try:
-            if isinstance(task_item, tuple):
-                current_env_name, task_idx = task_item
-            else:
-                current_env_name = config.env
-                task_idx = task_item
-                
-            retry = 0
+    def _run(task_item) -> list[EnvRunResult]:
+        current_env_name, task_idx, trial = task_item
+        retry_reason = []
+        attempts = []
+        for retry in range(config.max_retry):
+            isolated_env = None
             result = None
-            retry_reason = []
-
-            while retry < config.max_retry:
+            try:
+                isolated_env = get_env(
+                    env_name=current_env_name, task_type=config.task_type,
+                    user_strategy=config.user_strategy, user_model=config.user_model,
+                    user_temperature=config.user_temperature,
+                    embedding_model=getattr(config, "embedding_model", "text-embedding-3-large"),
+                    api_base=config.api_base, task_index=str(task_idx),
+                    retry_reason=retry_reason, experiment=experiment,
+                )
+                response = agents[current_env_name].run(
+                    isolated_env, str(task_idx), config.max_agent_turns, config.timeout
+                )
+                user_cost = isolated_env.user.get_total_cost()
+                result = EnvRunResult(
+                    db_id=isolated_env.task.db_id, task_type=isolated_env.task.task_type,
+                    task_id=isolated_env.task.task_id, sample_id=str(uuid.uuid4()),
+                    trial_id=trial, experiment_id=identity,
+                    reward=response.reward, info=response.info, messages=response.messages,
+                    cost=CostInfo(agent_cost=response.agent_cost, user_cost=user_cost, eval_cost=0.0,
+                                  total_cost=add_costs(response.agent_cost, user_cost)),
+                    retry=retry, retry_reason=list(retry_reason),
+                )
                 try:
-                    
-                    isolated_env = get_env(
-                        env_name=current_env_name,
-                        task_type=config.task_type,
-                        user_strategy=config.user_strategy,
-                        user_model=config.user_model,
-                        user_temperature=config.user_temperature,
-                        embedding_model=config.embedding_model,
-                        api_base=config.api_base,
-                        task_index=str(task_idx),
-                        retry_reason=retry_reason,
-                        experiment=experiment,
-                    )
-
-                    response = agents[current_env_name].run(
-                        isolated_env, str(task_idx), config.max_agent_turns, config.timeout
-                    )
-
-                    user_cost = isolated_env.user.get_total_cost()
-                    result = EnvRunResult(
-                        db_id=isolated_env.task.db_id,
-                        task_type=isolated_env.task.task_type,
-                        task_id=isolated_env.task.task_id,
-                        sample_id=str(uuid.uuid4()),
-                        reward=response.reward,
-                        info=response.info,
-                        messages=response.messages,
-                        cost=CostInfo(
-                            agent_cost=response.agent_cost,
-                            user_cost=user_cost,
-                            eval_cost=0.0,
-                            total_cost=round(response.agent_cost + user_cost, 8),
-                        ),
-                        validation=None,
-                        retry=retry,
-                        retry_reason=retry_reason
-                    )
-
                     validation_result = user_validator(
-                        messages=response.messages,
-                        env=isolated_env,
-                        model=config.validation_model,
-                        api_base=config.api_base,
-                        n=config.validation_trials,
-                        max_agent_turns=config.max_agent_turns
+                        messages=response.messages, env=isolated_env, model=config.validation_model,
+                        api_base=config.api_base, n=config.validation_trials,
+                        max_agent_turns=config.max_agent_turns,
                     )
-                    result.cost.eval_cost = round(result.cost.eval_cost + validation_result.eval_cost, 8)
-                    result.cost.total_cost = round(result.cost.total_cost + validation_result.eval_cost, 8)
-                    result.validation = validation_result
+                except Exception as error:
+                    # The trajectory already exists; validator failures must never replace it.
+                    validation_result = ValidationResult(decision="validator_error", reason=str(error), eval_cost=None)
+                result.cost.eval_cost = validation_result.eval_cost
+                result.cost.total_cost = add_costs(result.cost.agent_cost, user_cost, validation_result.eval_cost)
+                result.validation = validation_result
+                if validation_result.decision != "no_error":
+                    result.reward = None
+            except Exception as error:
+                task = envs[current_env_name].tasks[task_idx]
+                partial = error.result if isinstance(error, AgentRunError) else None
+                user_cost = isolated_env.user.get_total_cost() if isolated_env is not None else None
+                agent_cost = partial.agent_cost if partial is not None else None
+                is_timeout = isinstance(error, AgentTimeoutError)
+                validation_result = ValidationResult(decision="agent_timeout" if is_timeout else "runtime_error",
+                                                     reason=str(error), eval_cost=0.0)
+                result = EnvRunResult(
+                    db_id=task.db_id, task_type=task.task_type, task_id=task.task_id,
+                    sample_id=str(uuid.uuid4()), trial_id=trial, experiment_id=identity,
+                    reward=0.0 if is_timeout else None,
+                    info=partial.info if partial is not None else EnvInfo(task=task, reward_info=RewardInfo()),
+                    messages=partial.messages if partial is not None else [],
+                    cost=CostInfo(agent_cost=agent_cost, user_cost=user_cost, eval_cost=0.0,
+                                  total_cost=add_costs(agent_cost, user_cost)),
+                    validation=validation_result,
+                    retry=retry, retry_reason=list(retry_reason),
+                )
+                print(traceback.format_exc())
 
-                    if validation_result.decision == 'user_error':
-                        result.reward = None
-                        update_checkpoint(ckpt_path, result, file_lock)
-                        if config.user_strategy == "nested-reflection":
-                            explanation = _parse_validation_explanation(validation_result.reason)
-                            if explanation:
-                                retry_reason.append(explanation)
-                        retry += 1
-                        print(
-                            "⚠️ ",
-                            f"Retry {retry}/{config.max_retry} |",
-                            f"ckpt_path={ckpt_name}",
-                            f"task_id={task_idx}",
-                            f"User error during simulation: {validation_result.reason}"
-                        )
-                    else:
-                        update_checkpoint(ckpt_path, result, file_lock)
-                        break
-                
-                except AgentTimeoutError as e:
-                    error_reason = f"Agent timeout: {e}"
-                    result = dummy_error_result(isolated_env, 'no_error', error_reason, reward=0.0)
-                    update_checkpoint(ckpt_path, result, file_lock)
-                    print("❌", f"ckpt_path={ckpt_name}", f"task_id={task_idx}", error_reason)
-                    break
-
-            if result is not None and retry >= config.max_retry:
-                result.retry_exhausted = True
-                update_checkpoint(ckpt_path, result, file_lock)
-                print("⚠️ Retry exhausted |", f"ckpt_path={ckpt_name}", f"task_id={task_idx}")
-
-            if result and result.reward == 1:
-                print("✅", f"ckpt_path={ckpt_name}", f"task_id={task_idx}", result.info)
-            elif result and result.reward == 0:
-                print("❌", f"ckpt_path={ckpt_name}", f"task_id={task_idx}", result.info)
-
-            print("-----")
-            return result
-        
-        except KeyboardInterrupt:
-            print("Keyboard interrupt. Exiting...")
-            exit(0)
-
-        except Exception as e:
-            tb_str = io.StringIO()
-            traceback.print_exc(file=tb_str)
-            error_details = tb_str.getvalue()
-            error_reason = f"Unexpected error during simulation: {error_details}"
-            if 'isolated_env' in dir():
-                result = dummy_error_result(isolated_env, 'other', error_reason)
-                update_checkpoint(ckpt_path, result, file_lock)
-            else:
-                result = None
-            print("⚠️", f"ckpt_path={ckpt_name}", f"task_id={task_idx}", error_reason)
-            return result
+            retry_user = validation_result.decision == "user_error"
+            result.retry_exhausted = retry_user and retry + 1 == config.max_retry
+            update_checkpoint(ckpt_path, result, file_lock)
+            attempts.append(result)
+            print(f"task={current_env_name}/{task_idx} trial={trial} retry={retry} "
+                  f"reward={result.reward} validation={validation_result.decision}")
+            if not retry_user:
+                break
+            if config.user_strategy == "nested-reflection":
+                explanation = _parse_validation_explanation(validation_result.reason)
+                if explanation:
+                    retry_reason.append(explanation)
+        return attempts
 
     max_workers = max(1, min(config.max_concurrency, len(idx_to_run)))
-    new_results = []
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        futures = {executor.submit(_run, t): t for t in idx_to_run}
-        for _ in tqdm(as_completed(futures), total=len(futures), desc="Running"):
-            pass
-        for f in futures:
-            try:
-                new_results.append(f.result())
-            except Exception:
-                continue
+        futures = [executor.submit(_run, task_item) for task_item in idx_to_run]
+        for future in tqdm(as_completed(futures), total=len(futures), desc="Running"):
+            results.extend(future.result())
 
-    results.extend(new_results)
-    display_metrics(results, config.num_trials)
+    display_metrics(results, config.num_trials, expected_tasks=expected_tasks)
 
 if __name__ == "__main__":
     config = parse_arguments()

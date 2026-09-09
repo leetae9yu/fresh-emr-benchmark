@@ -1,390 +1,242 @@
-# Gemini 2.5 Flash-Lite full-tool IncreQA results
+# Gemini 2.5 Flash-Lite 풀툴 IncreQA 결과 보고서
 
-## Summary
+## 요약
 
-The official-user-simulator rerun completed **572/572 task-schema slots** with
-**283 successes and 289 failures: 49.48% success at k=1**. All four environments
-have complete coverage, with no missing or duplicate accepted slots.
+공식 사용자 시뮬레이터로 재실행한 결과, **태스크·스키마 조합 572/572개**를 모두 평가했으며 **성공 283개, 실패 289개, k=1 성공률 49.48%**를 기록했다. 네 환경 모두 유효 결과의 누락과 중복이 없다.
 
-The run took **79 minutes 47.686 seconds** and incurred **$5.83818909 in
-OpenRouter usage**, including unsuccessful simulation attempts. Tavily usage is
-reported separately as **26 advanced-search credits**.
+총 소요 시간은 **79분 47.686초**, OpenRouter 사용량 기준 비용은 실패한 시뮬레이션 시도까지 포함해 **$5.83818909**다. Tavily 사용량은 별도로 **고급 검색 26크레딧**이다.
 
-This report's primary result is the fresh official-user rerun completed on
-2026-09-09, not the earlier modified-simulator run that scored 324/572 (56.64%).
-No outcomes from that earlier pilot or full evaluation were reused.
+이 보고서의 주 결과는 2026-09-09 완료된 공식 사용자 재실행이다. 이전 수정 시뮬레이터 실행의 324/572(56.64%)와 구분하며, 이전 파일럿이나 전체 평가 결과를 재사용하지 않았다.
 
-## Research questions from the September 3 meeting
+## 9월 3일 미팅의 연구 질문과 보고서 범위
 
-The study focuses on **IncreQA**, with **Gemini 3.8 Flash as the main backbone**.
-This Gemini 2.5 Flash-Lite evaluation is supporting evidence for the tool-access
-comparison; it is not a substitute for the main-backbone experiment. AdaptQA
-and new paid model evaluations are outside this report.
+연구는 **IncreQA에 집중**하며, **주 백본 모델은 Gemini 3.8 Flash**다. 여기서 다루는 Gemini 2.5 Flash-Lite는 도구 접근 조건 비교를 위한 보조 근거이며, 주 백본 실험을 대체하지 않는다. AdaptQA와 신규 유료 모델 평가는 이 보고서의 범위가 아니다.
 
-| Motivation | Meeting hypothesis and comparison | Role of this report |
+| Motivation | 미팅의 가설과 비교 설계 | 이 보고서의 역할 |
 |---|---|---|
-| 1: Schema renaming and tool access | Renaming Original to Star may reduce accuracy through prior schema-name bias. With metadata available, compare full tools against SQL-only, including Original/Star table and column usage in Star trajectories. | Measure full-tool Original/Star performance and name usage; compare against the historical matched SQL-only baseline with provenance limits. |
-| 2: Metadata availability | Within SQL-only, the Original-to-Star decrease should be larger with metadata unavailable than with it available. | The full-tool run has metadata available throughout; it cannot test this interaction. |
-| 3: Model size and prior knowledge | Under Motivation 1's design, larger explicitly sized open-weight models may show stronger prior-name bias. | One closed model does not test a parameter-size trend. Keep this as a separate model-family comparison. |
+| 1: 스키마 이름 변경과 도구 접근 | Original을 Star로 이름 변경하면 기존 스키마 이름에 대한 편향으로 성능이 하락할 수 있다. 메타데이터가 제공될 때 풀툴과 SQL-only를 비교하고, Star 대화에서 Original·Star 테이블 및 컬럼 이름 사용량을 살핀다. | 풀툴의 Original·Star 성능과 이름 사용량을 측정하고, 실행 이력의 차이를 명시해 기존 SQL-only 대응 표본과 비교한다. |
+| 2: 메타데이터 제공 여부 | SQL-only에서 메타데이터가 없을 때 Original→Star 성능 하락 폭이 더 커질 것이다. | 이번 풀툴 실행은 전부 메타데이터 허용 조건이므로 이 상호작용을 검증하지 못한다. |
+| 3: 모델 크기와 사전 지식 | Motivation 1 설계에서 파라미터 수가 명확한 공개 가중치 모델이 커질수록 기존 이름에 대한 편향이 강해질 수 있다. | 비공개 모델 하나로 크기에 따른 경향을 검증할 수 없다. 별도 모델 계열 비교로 구분한다. |
 
-The meeting's earlier observation of a Star performance drop is a hypothesis
-to check under full tools, not a result to impose on this rerun. Here, Star
-scores higher than Original in both databases.
+미팅에서 관찰한 Star 성능 하락이 풀툴에서도 나타나는지 확인하는 것이 목적이며, 기존 결론에 이번 결과를 맞추지 않는다. **이번 실행에서는 두 데이터베이스 모두 Star 성능이 Original보다 높았다.**
 
-## Evaluation setup
+## 평가 설정
 
-| Setting | Value |
+| 항목 | 설정 |
 |---|---|
-| Benchmark | IncreQA; MIMIC-IV and eICU, each with Original and Star schemas |
-| Coverage | 145 MIMIC-IV tasks and 141 eICU tasks, each evaluated in both schemas |
-| Repetitions | k=1 per task-schema slot; 572 accepted outcomes over 286 underlying tasks |
-| Agent | `openrouter/google/gemini-2.5-flash-lite`, temperature 0 |
-| User simulator | `openrouter/google/gemini-2.5-flash-lite`, temperature 1, `nested-reflection` |
-| Validator | `openrouter/google/gemini-2.5-flash`, one validation trial |
-| Embeddings | `openrouter/openai/text-embedding-3-small` |
-| Tools | `sql_execute`, `table_search`, `column_search`, `value_substring_search`, `value_similarity_search`, `web_search` |
-| Information access | `metadata_access=allowed`, `schema_guidance=benchmark` |
-| SQL error feedback | `failure_feedback=detailed` |
-| Scoring | SQL-result any-hit scoring, `reward_scope=any`; not answer-tag accuracy |
-| Limits | `max_agent_turns=30`, `timeout=600`, `max_retry=10` |
-| Job timeout | `run_timeout=43200` seconds per environment job |
-| Parallelism | Initially 8 trajectories; continued with 4 environments x 3 workers = 12 |
+| 벤치마크 | IncreQA; MIMIC-IV와 eICU 각각 Original·Star 스키마 |
+| 평가 범위 | MIMIC-IV 145개 태스크와 eICU 141개 태스크를 두 스키마에서 각각 평가 |
+| 반복 수 | 태스크·스키마 조합별 k=1; 유효 결과 572개, 원래 태스크는 286개 |
+| 에이전트 | `openrouter/google/gemini-2.5-flash-lite`, temperature 0 |
+| 사용자 시뮬레이터 | `openrouter/google/gemini-2.5-flash-lite`, temperature 1, `nested-reflection` |
+| 검증 모델 | `openrouter/google/gemini-2.5-flash`, 검증 한 번 |
+| 임베딩 | `openrouter/openai/text-embedding-3-small` |
+| 도구 | `sql_execute`, `table_search`, `column_search`, `value_substring_search`, `value_similarity_search`, `web_search` |
+| 정보 접근 | `metadata_access=allowed`, `schema_guidance=benchmark` |
+| SQL 오류 피드백 | `failure_feedback=detailed` |
+| 채점 | SQL 결과가 한 번이라도 정답과 일치하면 성공으로 판정하는 any-hit 방식, `reward_scope=any`; 답변 태그 정확도가 아님 |
+| 제한 | `max_agent_turns=30`, `timeout=600`, `max_retry=10` |
+| 환경별 작업 제한 시간 | `run_timeout=43200`초 |
+| 병렬 처리 | 처음에는 대화 8개 병렬, 이후 4개 환경 × 워커 3개 = 12개 병렬 |
 
-The user simulator's `src/envs/user.py` matches the pinned official file:
+사용자 시뮬레이터의 `src/envs/user.py`는 고정한 공식 파일과 일치한다.
 
 ```text
 SHA256 076edd1bdb04c6c46dc06eea471811167e4cd9fbf1cbad00a366e529b1fea510
 ```
 
-All seven baseline runtime-file hashes were unchanged during this rerun.
-Models, prompts, scoring and per-task limits were not rewritten to obtain
-coverage. The established Flash-Lite user and small embedding model were
-retained. "Official user" describes the simulator control flow, not an assertion
-that every model, transport and scoring setting reproduces the paper defaults.
+재실행 중 기준 런타임 파일 7개의 해시는 모두 유지됐다. 결과를 채우기 위해 모델, 프롬프트, 채점 방식, 태스크별 제한을 고치지 않았고, 기존에 정한 Flash-Lite 사용자 모델과 small 임베딩 모델을 유지했다. 여기서 ‘공식 사용자’는 시뮬레이터의 제어 흐름을 뜻한다. 모델·통신 계층·채점 설정 전체가 논문의 기본값을 재현한다는 의미는 아니다.
 
-## Motivation 1: Full-tool results by environment
+## Motivation 1: 환경별 풀툴 성능
 
-| Database | Schema | Successes | Failures | Accepted / expected | Success rate |
+| 데이터베이스 | 스키마 | 성공 | 실패 | 유효 결과 / 예정 | 성공률 |
 |---|---|---:|---:|---:|---:|
 | MIMIC-IV | Original | 73 | 72 | 145/145 | 50.34% |
 | MIMIC-IV | Star | 77 | 68 | 145/145 | 53.10% |
 | eICU | Original | 63 | 78 | 141/141 | 44.68% |
 | eICU | Star | 70 | 71 | 141/141 | 49.65% |
-| **Total** | **Both** | **283** | **289** | **572/572** | **49.48%** |
+| **전체** | **두 스키마** | **283** | **289** | **572/572** | **49.48%** |
 
-Across databases, Original scored **136/286 (47.55%)** and Star scored
-**147/286 (51.40%)**, a descriptive difference of **+3.85 percentage points**.
-Within MIMIC-IV the difference was +2.76 points; within eICU it was +4.96 points.
-Differences are calculated before rounding.
+데이터베이스를 합치면 Original은 **136/286(47.55%)**, Star는 **147/286(51.40%)**로, Star가 **3.85%p 높다**. MIMIC-IV에서는 +2.76%p, eICU에서는 +4.96%p다. 차이는 반올림 전 값으로 계산했다.
 
-Paired Original-to-Star changes use the same task ID within each database:
+각 데이터베이스에서 같은 태스크 ID를 대응시킨 Original→Star 결과는 다음과 같다.
 
-| Database | Pairs | Both succeed | Both fail | Original fails / Star succeeds | Original succeeds / Star fails |
+| 데이터베이스 | 대응 쌍 | 둘 다 성공 | 둘 다 실패 | Original 실패 / Star 성공 | Original 성공 / Star 실패 |
 |---|---:|---:|---:|---:|---:|
 | MIMIC-IV | 145 | 51 | 46 | 26 | 22 |
 | eICU | 141 | 42 | 50 | 28 | 21 |
-| **Total** | **286** | **93** | **96** | **54** | **43** |
+| **전체** | **286** | **93** | **96** | **54** | **43** |
 
-These are single-run task-level observations. k=1 does not estimate per-task
-reliability, and the two schema variants are paired copies of the underlying
-tasks rather than 572 independent questions. No p-values or population-level
-claims are reported.
+이는 태스크별 한 번의 실행에서 관찰한 결과다. k=1로 태스크별 신뢰도를 추정할 수 없으며, 두 스키마는 같은 태스크의 대응 변형이므로 독립된 질문 572개로 취급할 수 없다. p-value나 모집단 수준의 일반화 주장은 제시하지 않는다.
 
-### Full tools versus the historical SQL-only baseline
+### 기존 SQL-only 기준선과 풀툴 비교
 
-The metadata-available comparison matches **572/572 task-schema slots**.
-Instructions, gold SQL and gold answers match for every pair. The baseline is
-the saved first-valid SQL-only cohort, not the earlier modified-simulator
-full-tool cohort.
+메타데이터 허용 조건에서 **572/572개 태스크·스키마 조합**이 대응된다. 모든 쌍의 지시문, 정답 SQL, 정답 값이 일치한다. 비교 기준은 저장된 첫 유효 결과를 선택한 기존 SQL-only 표본이며, 이전 수정 시뮬레이터 풀툴 표본이 아니다.
 
-| Environment | SQL-only successes | Full-tool successes | Full minus SQL-only | Rescues | Regressions |
+| 환경 | SQL-only 성공 | 풀툴 성공 | 풀툴 − SQL-only | 실패→성공 | 성공→실패 |
 |---|---:|---:|---:|---:|---:|
-| MIMIC-IV Original | 48/145 (33.10%) | 73/145 (50.34%) | +17.24 pp | 41 | 16 |
-| MIMIC-IV Star | 27/145 (18.62%) | 77/145 (53.10%) | +34.48 pp | 57 | 7 |
-| eICU Original | 8/141 (5.67%) | 63/141 (44.68%) | +39.01 pp | 60 | 5 |
-| eICU Star | 14/141 (9.93%) | 70/141 (49.65%) | +39.72 pp | 61 | 5 |
-| **Total** | **97/572 (16.96%)** | **283/572 (49.48%)** | **+32.52 pp** | **219** | **33** |
+| MIMIC-IV Original | 48/145 (33.10%) | 73/145 (50.34%) | +17.24%p | 41 | 16 |
+| MIMIC-IV Star | 27/145 (18.62%) | 77/145 (53.10%) | +34.48%p | 57 | 7 |
+| eICU Original | 8/141 (5.67%) | 63/141 (44.68%) | +39.01%p | 60 | 5 |
+| eICU Star | 14/141 (9.93%) | 70/141 (49.65%) | +39.72%p | 61 | 5 |
+| **전체** | **97/572 (16.96%)** | **283/572 (49.48%)** | **+32.52%p** | **219** | **33** |
 
-A rescue is a historical SQL-only failure paired with a full-tool success;
-a regression is the reverse. Another 64 slots succeed in both runs and 256
-fail in both. These terms describe paired outcomes, not a recovery within one
-conversation.
+‘실패→성공’은 기존 SQL-only에서 실패하고 풀툴에서 성공한 대응 결과이며, ‘성공→실패’는 그 반대다. 64개는 두 실행에서 모두 성공했고 256개는 모두 실패했다. 이는 서로 다른 실행 간의 대응 결과이지, 한 대화 안에서 오류를 복구했다는 뜻이 아니다.
 
-Pooled Original-to-Star performance changes from **56/286 -> 41/286**
-(19.58% -> 14.34%, -5.24 pp) under historical SQL-only to
-**136/286 -> 147/286** (47.55% -> 51.40%, +3.85 pp) under full tools.
-The historical SQL-only drop is concentrated in MIMIC-IV: eICU already has a
-positive Star-minus-Original difference. Do not describe renaming as uniformly
-harmful across both databases.
+합산 Original→Star 성능은 기존 SQL-only의 **56/286 → 41/286**(19.58% → 14.34%, -5.24%p)에서 풀툴의 **136/286 → 147/286**(47.55% → 51.40%, +3.85%p)로 바뀌었다. 기존 SQL-only의 하락은 MIMIC-IV에 집중돼 있고, eICU는 기존에도 Star가 더 높았다. 두 데이터베이스 모두에서 이름 변경이 일관되게 성능을 떨어뜨린다고 해석해서는 안 된다.
 
-This supports the meeting's full-tool follow-up descriptively: full tools have
-higher observed success in all four environments, and no aggregate Star
-penalty is observed in this rerun. It is **not a controlled tools-only causal
-estimate**. The SQL-only cohort was generated on August 26/28/29, while the
-full-tool cohort was generated on September 9. It reuses 193 first-valid
-completions from prior k=3 files and 379 later k=1 outcomes. Selection was not
-best-of-three, but first saved valid completion is not a randomized first trial.
-Complete historical simulator/runtime equivalence is not established, and
-conversations were regenerated rather than replayed. Nominal model,
-temperature, feedback and guidance settings do not remove those differences.
+관찰 결과는 미팅에서 제안한 풀툴 후속 비교를 뒷받침한다. 네 환경 모두 풀툴의 성공률이 더 높았고, 이번 재실행에서는 합산 Star 성능 하락이 나타나지 않았다. 다만 **도구만의 효과를 분리한 통제 실험에 의한 인과 추정은 아니다**. SQL-only는 8월 26/28/29일에, 풀툴은 9월 9일에 생성됐다. 기준선은 이전 k=3 파일의 첫 유효 결과 193개와 이후 k=1 결과 379개를 사용한다. 세 번 중 최선의 결과를 고른 것은 아니지만, 먼저 저장된 유효 결과를 고르는 방식이 무작위 첫 시도 선택과 같지는 않다. 과거 시뮬레이터와 런타임의 완전한 동등성은 확인되지 않았고 대화도 재생한 것이 아니라 새로 생성했다. 모델·temperature·피드백·가이드의 명목상 일치만으로 이 차이가 없어지지는 않는다.
 
-### Original and Star table/column names inside full-tool Star trajectories
+### 풀툴 Star 대화에서의 Original·Star 테이블 및 컬럼 이름
 
-The posthoc audit covers **all 286 accepted Star trajectories**, including
-score-zero outcomes. It uses exact case-normalized schema membership:
-**Original-only**, **Star-only**, **shared**, or **unknown**, separately for
-tables and columns. Column membership is database-wide, not a claim that a
-column belongs to the queried table or an inferred rename mapping.
+사후 분석 대상은 실패 결과까지 포함한 **Star 유효 대화 286개 전체**다. 대소문자를 정규화한 정확한 스키마 이름을 테이블·컬럼별로 나눠 **Original 전용**, **Star 전용**, **공통**, **어느 쪽에도 없는 이름**으로 분류했다. 컬럼 분류는 데이터베이스 전체의 이름 집합 기준이며, 해당 컬럼이 질의 대상 테이블에 속한다거나 특정 이름 변경에 대응한다는 뜻은 아니다.
 
-The primary table below counts physical references written in `sql_execute`
-queries. Repeated references count repeatedly as occurrences. Calls and
-trajectories use table-or-column unions, so a query containing both is counted
-once in those columns.
+아래 주 집계는 `sql_execute` 질의에 작성된 물리적 테이블·컬럼 참조를 센다. 같은 이름이 반복되면 등장 횟수에 반복 반영한다. 반면 호출 수와 대화 수는 테이블 또는 컬럼을 참조한 합집합이므로, 둘 다 있는 질의도 한 번만 센다.
 
-| Star environment | Accepted trajectories | SQL calls | Original-only table occurrences | Original-only column occurrences | Star-only table occurrences | Star-only column occurrences | SQL calls with Original-only names | Trajectories with Original-only SQL names |
+| Star 환경 | 유효 대화 | SQL 호출 | Original 전용 테이블 등장 | Original 전용 컬럼 등장 | Star 전용 테이블 등장 | Star 전용 컬럼 등장 | Original 전용 이름이 있는 SQL 호출 | Original 전용 SQL 이름이 있는 대화 |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
 | MIMIC-IV Star | 145 | 509 | 6 | 111 | 1,258 | 4,382 | 79/509 | 20/145 |
 | eICU Star | 141 | 436 | 1 | 2 | 598 | 3,757 | 3/436 | 3/141 |
-| **Total** | **286** | **945** | **7** | **113** | **1,856** | **8,139** | **82/945 (8.68%)** | **23/286 (8.04%)** |
+| **전체** | **286** | **945** | **7** | **113** | **1,856** | **8,139** | **82/945 (8.68%)** | **23/286 (8.04%)** |
 
-Star-only names appear in **939/945 SQL calls** and **258/286 trajectories**.
-Original-only and Star-only categories can co-occur within one query; they
-are not mutually exclusive call or trajectory partitions.
+Star 전용 이름은 **SQL 호출 939/945개**, **대화 258/286개**에서 나타났다. 하나의 질의에 Original 전용과 Star 전용 이름이 함께 있을 수 있으므로 호출·대화 수준에서 서로 배타적인 분류가 아니다.
 
-Adding explicit schema arguments in `column_search` and value-search tools
-gives this broader, separately reported measure:
+`column_search` 및 값 검색 도구의 명시적 스키마 인자까지 포함하면 다음과 같다. SQL 한정 집계와는 별도로 제시한다.
 
-| Scope, accepted Star trajectories | Tool calls | Original-only table / column occurrences | Star-only table / column occurrences | Calls with Original-only names | Trajectories with Original-only names |
+| 집계 범위: 유효 Star 대화 | 도구 호출 | Original 전용 테이블 / 컬럼 등장 | Star 전용 테이블 / 컬럼 등장 | Original 전용 이름이 있는 호출 | Original 전용 이름이 있는 대화 |
 |---|---:|---:|---:|---:|---:|
-| SQL plus all other tools | 2,063 | 11 / 113 | 2,608 / 8,366 | 86/2,063 | 27/286 (9.44%) |
+| SQL 및 나머지 모든 도구 | 2,063 | 11 / 113 | 2,608 / 8,366 | 86/2,063 | 27/286 (9.44%) |
 
-The additional four Original-only references are eICU table arguments.
-The all-tool count is not a like-for-like SQL-call denominator; it must not be
-used to imply a cross-mode decrease merely because full tools expose more
-ways to reference a name. This report's historical tool comparison is a
-performance comparison; it does not claim a measured reduction in name
-intrusion versus SQL-only using incompatible legacy counting rules.
+추가된 Original 전용 참조 4개는 eICU의 테이블 인자다. 전체 도구 집계와 SQL 호출 집계는 분모가 다르다. 풀툴에는 이름을 참조하는 경로가 더 많다는 사실만으로 조건 간 이름 사용이 줄었다고 주장해서는 안 된다. 이 보고서의 과거 실행 대비 도구 비교는 성능 비교이며, 서로 다른 과거 이름 집계 규칙을 섞어 SQL-only보다 이름 침범이 감소했다고 주장하지 않는다.
 
-Counting exclusions and uncertainty:
+집계에서 제외하거나 별도로 처리한 항목은 다음과 같다.
 
-- Aliases, CTE names, derived output names, comments, prose and clinical string
-  values are not physical Original-name intrusions.
-- Shared names are separate: the SQL subset contains 212 shared table and
-  227 shared column occurrences. Unknown names are also separate: 39 table and
-  512 column occurrences, appearing in 193 SQL calls.
-- The SQL denominator retains **3 parse-failure calls** and **26 calls with
-  parse/scope uncertainty in total**, including those 3. Unresolved candidate
-  references are not counted as confirmed physical references or treated as
-  clean negative evidence.
-- One metadata-exploration call is kept separate. Ignored `table_search` input
-  is not counted; explicit `column_search.table_names` is counted because that
-  tool accesses the requested table.
+- 별칭, CTE 이름, 파생 출력 이름, 주석, 자연어 문장, 임상 문자열 값은 물리적 Original 이름 참조로 세지 않는다.
+- 공통 이름은 별도다. SQL 한정 집계에는 공통 테이블 212회, 공통 컬럼 227회가 있다. 어느 스키마에도 없는 이름도 별도로, 테이블 39회와 컬럼 512회가 SQL 호출 193개에서 나타났다.
+- SQL 분모에는 **파싱 실패 호출 3개**와 이를 포함한 **파싱·스코프 해석이 불확실한 호출 총 26개**가 남아 있다. 미해결 참조 후보를 확정된 물리적 참조로 세거나, 문제가 없다는 음성 근거로 처리하지 않는다.
+- 메타데이터 탐색 호출 1개는 별도로 분류했다. 실제로 무시되는 `table_search` 입력은 세지 않지만, `column_search.table_names`는 해당 테이블에 접근하므로 센다.
 
-Two concrete examples from the eICU-Star final checkpoint:
+eICU-Star 최종 체크포인트의 구체적인 사례는 다음과 같다.
 
-| Task | Sample | Evidence | Observation |
+| 태스크 | 샘플 | 근거 위치 | 관찰 |
 |---|---|---|---|
-| 119 | `762cbed6-a1e3-475c-92d4-b6695519dbe1` | Line 154, message index 26, SQL `JOIN patient p` | Original-only table `patient`; matching response: `no such table: patient` |
-| 31 | `defa0d35-0808-4c98-86bb-d48634ae5013` | Line 45, message index 18, SQL `SUM(T1.cost)` | Original-only column `cost`; matching response: `no such column: T1.cost` |
+| 119 | `762cbed6-a1e3-475c-92d4-b6695519dbe1` | 154행, 메시지 인덱스 26, SQL `JOIN patient p` | Original 전용 테이블 `patient`; 대응 응답: `no such table: patient` |
+| 31 | `defa0d35-0808-4c98-86bb-d48634ae5013` | 45행, 메시지 인덱스 18, SQL `SUM(T1.cost)` | Original 전용 컬럼 `cost`; 대응 응답: `no such column: T1.cost` |
 
-Message indices are zero-based. These examples show actual references and
-matched error responses, not a substring count of quoted schema names.
-Original-only names remain observable even when aggregate Star performance
-does not decline. Ten of the 27 all-tool intrusion trajectories have stored
-reward 1; any-hit scoring means this is co-occurrence, not proof of recovery
-after the offending call. Name occurrence alone does not prove memorization
-or identify the causal source of the spelling.
+메시지 인덱스는 0부터 시작한다. 두 사례는 실제 참조와 이에 대응하는 오류 응답을 보여주며, 인용된 스키마 이름의 단순 부분 문자열 횟수가 아니다. Star 합산 성능이 하락하지 않더라도 Original 전용 이름 사용은 남아 있다. 전체 도구 기준 해당 이름이 나온 대화 27개 중 10개는 저장된 reward가 1이다. any-hit 채점에서는 이것이 성공과 이름 참조의 동시 관찰을 뜻할 뿐, 잘못된 호출 이후 복구했다는 증거는 아니다. 이름의 등장만으로 암기 여부나 그 철자가 생성된 원인을 확정할 수 없다.
 
-## Motivation 2: What this run does not establish
+## Motivation 2: 이번 실행으로 확인할 수 없는 부분
 
-There is no metadata-unavailable arm in this full-tool rerun. Motivation 2
-requires SQL-only measurements in four cells: Original/available,
-Star/available, Original/unavailable and Star/unavailable. Its descriptive
-target is whether the Original-minus-Star performance gap is larger in the
-unavailable condition.
+이번 풀툴 재실행에는 메타데이터 미제공 조건이 없다. Motivation 2에는 SQL-only에서 Original/제공, Star/제공, Original/미제공, Star/미제공의 네 조건이 필요하다. 확인할 대상은 메타데이터가 없을 때 Original−Star 성능 격차가 더 커지는지다.
 
-Historical SQL-only available and unavailable runs exist, but their unavailable
-condition also used identifier-free guidance rather than benchmark guidance.
-They should not be described as a pure metadata-only intervention without
-accounting for that difference. The present full-tool score cannot resolve the
-meeting's ambiguous metadata trend.
+기존 SQL-only 제공·미제공 실행은 존재하지만, 미제공 조건에서는 benchmark 가이드 대신 identifier-free 가이드도 사용했다. 이 차이를 고려하지 않고 메타데이터만 바꾼 개입으로 해석해서는 안 된다. 현재 풀툴 점수만으로 미팅에서 불명확했던 메타데이터 경향을 결론낼 수 없다.
 
-## Motivation 3: Separate size-controlled comparison
+## Motivation 3: 모델 크기를 구분한 별도 비교
 
-The meeting proposes comparing explicitly sized models within an open-weight
-family using Motivation 1's task, schema and tool matrix. Its Qwen examples are
-`qwen/qwen3.8-27b` and `qwen/qwen3.8-2.4t-a95b`; these are proposed candidates
-from the meeting, not endpoints verified or experiments executed for this
-report. For a dense/MoE comparison, record both total and active parameter counts
-rather than treating the two as interchangeable measures of size.
+미팅에서는 Motivation 1의 태스크·스키마·도구 구성을 유지하면서, 같은 공개 가중치 모델 계열에서 크기가 명확한 모델을 비교하기로 했다. 예시는 `qwen/qwen3.8-27b`와 `qwen/qwen3.8-2.4t-a95b`다. 이는 미팅에서 제안한 후보이며, 이 보고서를 위해 엔드포인트를 확인하거나 실험한 모델이 아니다. Dense와 MoE를 비교한다면 전체 파라미터 수와 활성 파라미터 수를 모두 기록해야 하며, 둘을 같은 크기 지표로 취급해서는 안 된다.
 
-Flash-Lite versus Flash is not a disclosed-parameter-size comparison. Neither
-this run's success rates nor Original-name occurrences alone establish that
-larger models have stronger prior knowledge bias.
+Flash-Lite와 Flash 비교는 공개된 파라미터 수에 따른 비교가 아니다. 이번 성공률이나 Original 이름 등장만으로 큰 모델일수록 사전 지식 편향이 강하다고 결론낼 수 없다.
 
-The meeting reference, [arXiv:2604.24827](https://arxiv.org/abs/2604.24827),
-studies factual-recall probes as a coarse signal of parameter count. Its
-abstract does not itself demonstrate a causal relationship between model size
-and schema-name intrusion in EHR tasks. Motivation 3 remains an empirical
-question for the controlled model comparison.
+미팅 참고 문헌인 [arXiv:2604.24827](https://arxiv.org/abs/2604.24827)은 사실 회상 질문을 파라미터 수의 대략적 지표로 사용하는 연구다. 초록 자체가 EHR 태스크의 모델 크기와 스키마 이름 침범 사이의 인과관계를 입증하는 것은 아니다. Motivation 3은 통제된 모델 비교로 확인해야 할 경험적 질문으로 남는다.
 
-## Attempts, rejected simulations and agent failures
+## 전체 시도, 거부된 시뮬레이션, 에이전트 실패
 
-The checkpoint history contains **786 distinct attempts**. Of these, 572 were
-accepted as valid trajectories and 214 were rejected with `user_error`.
-Rejected simulations are retained in the audit trail; they are not converted
-into agent failures to fill coverage and are not in the 572-outcome denominator.
-Thus, 49.48% is success among accepted simulations, not among all raw attempts.
-The accepted set contains 571 `no_error` records and one scored
-`agent_timeout` failure (eICU Original task 98); accepted does not mean that
-every trajectory ended without an agent error.
+체크포인트에는 **서로 다른 시도 786개**가 있다. 이 중 유효 대화 572개가 채택됐고, 214개는 `user_error`로 거부됐다. 거부된 시뮬레이션도 감사 기록에 보존하며, 평가 수를 채우기 위해 에이전트 실패로 바꾸거나 572개 분모에 넣지 않는다. 따라서 49.48%는 모든 원시 시도 대비 성공률이 아니라 **유효 시뮬레이션 중 성공률**이다.
 
-| Environment | Saved attempts | Accepted outcomes | Rejected simulations |
+유효 집합에는 `no_error` 571개와 점수 0으로 처리된 `agent_timeout` 1개(eICU Original 태스크 98)가 있다. 유효 결과라는 말이 모든 대화가 에이전트 오류 없이 끝났다는 뜻은 아니다.
+
+| 환경 | 저장된 시도 | 유효 결과 | 거부된 시뮬레이션 |
 |---|---:|---:|---:|
 | MIMIC-IV Original | 197 | 145 | 52 |
 | MIMIC-IV Star | 198 | 145 | 53 |
 | eICU Original | 209 | 141 | 68 |
 | eICU Star | 182 | 141 | 41 |
-| **Total** | **786** | **572** | **214** |
+| **전체** | **786** | **572** | **214** |
 
-The 289 accepted score-zero trajectories comprise:
+유효한 점수 0 대화 289개의 분류는 다음과 같다.
 
-- **234 terminal score-zero trajectories**, labeled `terminal_sql_mismatch`
-  in the saved analysis.
-- **55 nonterminal trajectories**.
+- **종료된 점수 0 대화 234개**: 저장된 분석의 `terminal_sql_mismatch` 항목.
+- **미종료 대화 55개**.
 
-This classification separates an unsuccessful valid agent trajectory from an
-invalid user simulation. It does not equate a missing answer tag with an
-IncreQA SQL-result failure. The terminal count is reproduced by detecting a
-user `###END###` sentinel in a score-zero trajectory; it is an operational
-outcome category, not an independently diagnosed SQL root cause.
+이 분류는 유효하지만 실패한 에이전트 대화와 무효 사용자 시뮬레이션을 구분한다. 답변 태그 누락을 IncreQA SQL 결과 실패와 동일시하지 않는다. 종료 집계는 점수 0 대화에서 사용자 `###END###` 표식을 탐지하면 재현된다. 이는 운영상 결과 분류이며, SQL 실패의 근본 원인을 독립적으로 진단한 결과는 아니다.
 
-All 786 checkpointed attempts have sample-linked diagnostic files, totaling
-41,592 events. Eight additional partial diagnostic files from interrupted
-in-flight attempts are preserved separately and are not added to the 786 count.
-Repeated checkpoint snapshots contain 855 rows before deduplication; 69
-identical repeated snapshots account for the difference from 786 attempts.
+체크포인트에 저장된 시도 786개 모두 샘플과 연결된 진단 파일이 있고, 총 이벤트는 41,592개다. 실행 중 끊긴 시도의 부분 진단 파일 8개도 별도 보존하며 786개 분모에 더하지 않는다. 반복 체크포인트 스냅샷을 그대로 합치면 855행이지만, 동일한 스냅샷 69행이 중복돼 있어 제거하면 786개다.
 
-One pre-existing aggregate discrepancy is retained rather than silently
-rewriting the analysis: raw all-attempt messages contain 2,517 `sql_execute`
-entries, while `analysis.json.tools.sql_execute` records 2,516. Its cause is
-not established. The naming tables above are independently computed from
-accepted Star trajectories only, with their explicit 945-SQL-call denominator.
+기존 집계의 불일치 한 건은 원본을 조용히 고치지 않고 명시한다. 전체 시도의 원시 메시지에는 `sql_execute` 2,517건이 있으나 `analysis.json.tools.sql_execute`에는 2,516건이 기록돼 있다. 원인은 확인되지 않았다. 위 이름 분석 표는 유효 Star 대화만 독립적으로 집계했으며, 분모는 명시한 SQL 호출 945개다.
 
-## Cost and execution time
+## 비용과 실행 시간
 
-| Item | Measurement |
+| 항목 | 측정값 |
 |---|---:|
-| OpenRouter usage before | $92.482596181 |
-| OpenRouter usage after | $98.320785271 |
-| **Incremental OpenRouter cost** | **$5.83818909** |
-| Cost per accepted outcome, including rejected attempts | $0.010207 |
-| Start, UTC | 2026-09-09 14:35:49.198 |
-| Finish, UTC | 2026-09-09 15:55:36.884 |
-| Elapsed, including concurrency transition | 79 minutes 47.686 seconds |
+| OpenRouter 실행 전 누적 사용액 | $92.482596181 |
+| OpenRouter 실행 후 누적 사용액 | $98.320785271 |
+| **OpenRouter 비용 증가분** | **$5.83818909** |
+| 거부된 시도 비용까지 포함한 유효 결과당 비용 | $0.010207 |
+| 시작, UTC | 2026-09-09 14:35:49.198 |
+| 종료, UTC | 2026-09-09 15:55:36.884 |
+| 병렬 처리 전환을 포함한 소요 시간 | 79분 47.686초 |
 
-The account usage delta is the cost total. Saved per-role accounting is partial:
+비용 총액은 계정 누적 사용액의 차이다. 저장된 역할별 비용은 일부만 확인된다.
 
-| Role | Known cost | Missing or incomplete accounting |
+| 역할 | 확인된 비용 | 누락 또는 불완전한 집계 |
 |---|---:|---|
-| Agent | $2.69384365 | 43 unknown agent-cost entries |
-| User simulator | $2.18143707 | 69 incomplete user totals |
-| Validator | $0.83090780 | 0 unknown validator-cost entries |
+| 에이전트 | $2.69384365 | 비용 미확인 항목 43개 |
+| 사용자 시뮬레이터 | $2.18143707 | 합계가 불완전한 항목 69개 |
+| 검증 모델 | $0.83090780 | 비용 미확인 항목 0개 |
 
-These partial role totals must not be zero-filled or substituted for the account
-delta. The OpenRouter amount does not price Tavily credits.
+역할별 누락값을 0으로 채우거나 부분 합계로 계정 사용액 차이를 대체해서는 안 된다. OpenRouter 비용에는 Tavily 크레딧의 금전적 가격이 포함되지 않는다.
 
-There were **13 successful web-search tool responses**, corresponding to
-**26 advanced-search credits**. At run completion, Tavily's delayed meter showed
-262 -> 272 (+10); that historical snapshot remains in `analysis.json`. The
-subsequent A/B run's baseline, recorded at 2026-09-09 18:47:41.585 UTC, shows
-288 credits, consistent with 262 + 26. This report records that reconciliation
-without overwriting the original snapshot.
+**성공한 웹 검색 도구 응답 13개**는 **고급 검색 26크레딧**에 해당한다. 완료 직후 Tavily 사용량 표시는 과금 반영 지연으로 262 → 272(+10)였고, 이 시점의 스냅샷은 `analysis.json`에 그대로 남아 있다. 이후 A/B 실행의 기준선(2026-09-09 18:47:41.585 UTC)에서는 288크레딧이 확인돼 262 + 26과 일치했다. 이 보고서는 당시 원본 스냅샷을 덮어쓰지 않고 후속 대조 결과를 기록한다.
 
-## Preservation and interpretation
+## 보존 검증과 이전 실행의 해석
 
-At the 8-to-12-worker transition, 52 accepted outcomes and all 69 saved attempts
-were retained byte-identically. All 97 files in the initial rerun root remained
-unchanged. The transition reused only outcomes from this official-user rerun,
-not older modified-simulator results.
+워커를 8개에서 12개로 바꿀 때 유효 결과 52개와 저장된 시도 69개를 바이트 단위로 동일하게 유지했다. 최초 재실행 결과 디렉터리의 파일 97개도 바뀌지 않았다. 전환 시 재사용한 것은 이번 공식 사용자 재실행의 결과뿐이며, 이전 수정 시뮬레이터 결과는 아니다.
 
-The saved final summary reports return code 0 for every environment job, complete
-coverage, and empty missing-task, duplicate-task and coverage-error lists.
-The existing run audit also records native result-schema validation and the
-runtime-file hash checks.
+최종 요약에서 모든 환경 작업의 종료 코드는 0이고, 평가 범위가 완성됐으며, 태스크 누락·중복·범위 오류 목록은 비어 있다. 기존 실행 감사에는 네이티브 결과 스키마 검증과 런타임 파일 해시 대조도 기록돼 있다.
 
-For historical context only:
+다음은 과거 실행과 구분하기 위한 참고 비교다.
 
-| Cohort | Successes / accepted | Success rate | OpenRouter cost |
+| 실행 집합 | 성공 / 유효 결과 | 성공률 | OpenRouter 비용 |
 |---|---:|---:|---:|
-| Earlier modified-simulator full run, including reused pilot | 324/572 | 56.64% | $6.59140698, including pilot |
-| **Fresh official-user rerun, primary result** | **283/572** | **49.48%** | **$5.83818909** |
+| 이전 수정 시뮬레이터 전체 실행, 파일럿 재사용 포함 | 324/572 | 56.64% | $6.59140698, 파일럿 포함 |
+| **새 공식 사용자 재실행: 주 결과** | **283/572** | **49.48%** | **$5.83818909** |
 
-The observed difference is -41 successes, or -7.17 percentage points. It is not
-a causal estimate of the simulator change: the older cohort mixed pilot and
-repaired-simulator sources, while the fresh run regenerated conversations and
-used a different concurrency schedule. Keep the cohorts separate. This
-full-tool-only rerun also does not, by itself, establish an improvement over
-SQL-only or isolate the contribution of any individual tool.
+관찰된 차이는 성공 41개 감소, -7.17%p다. 이는 시뮬레이터 변경의 인과효과 추정이 아니다. 이전 집합에는 파일럿과 수정 시뮬레이터 소스가 혼합돼 있고, 새 실행은 대화를 다시 생성했으며 병렬 처리 일정도 다르다. 두 결과 집합을 분리해야 한다. 이번 풀툴 실행만으로 SQL-only 대비 개선의 원인을 확정하거나 개별 도구의 기여를 분리할 수도 없다.
 
-## Evidence and reproduction references
+## 근거 자료와 재현 참조
 
-The paths below identify local audit artifacts relative to the
-`EHR-ChatQA-naming-audit` worktree. Raw trajectories, diagnostic transcripts and
-runtime/config changes are not bundled with this report-only commit. The report
-commit alone is not a complete runnable snapshot of the experiment.
+아래 경로는 `EHR-ChatQA-naming-audit` 작업 트리 기준의 로컬 감사 자료를 가리킨다. 이 보고서만 담은 커밋에는 원시 대화, 진단 기록, 런타임·설정 변경을 함께 넣지 않았다. 따라서 보고서 커밋 하나만으로 실험 전체를 실행할 수 있는 것은 아니다.
 
-Final configuration:
+최종 설정 파일:
 
 ```text
 experiments/gemini25fl-full-incre-official-simulator-rerun-p12.toml
 ```
 
-Recorded continuation command, for provenance rather than a request to rerun:
+기록된 이어 실행 명령이다. 실행 이력의 근거이며, 다시 실행하라는 지시가 아니다.
 
 ```bash
 .venv/bin/python -B experiment_runner.py experiments/gemini25fl-full-incre-official-simulator-rerun-p12.toml --resume
 ```
 
-Final result root:
+최종 결과 디렉터리:
 
 ```text
 results/config-runner/gemini25fl-incre-full-rerun-p12-20260909-07ab1ea4d9b59574e58806b6f73ba7ee61679c415bfe96a4bbeea23b4dadd233
 ```
 
-- `summary.json`: per-job return codes and expected/accepted task coverage.
-- `analysis.json`: environment scores, exact checkpoint paths, attempt and
-  failure counts, costs, diagnostic index and preservation verification.
-- `manifest.json`: resolved experimental settings and source provenance.
-- `parallel-transition.json`: preserved initial root and transition evidence.
-- `launch.json`: continuation command, seed hashes and execution metadata.
-- `checkpoints/`: native results and diagnostic records, including rejected
-  simulation attempts; the diagnostic index also references the initial root.
+- `summary.json`: 환경별 종료 코드와 예정·완료 태스크 범위.
+- `analysis.json`: 환경별 성적, 정확한 체크포인트 경로, 시도·실패 횟수, 비용, 진단 파일 색인, 보존 검증.
+- `manifest.json`: 확정된 실험 설정과 소스 이력.
+- `parallel-transition.json`: 보존된 최초 결과 디렉터리와 병렬 전환 근거.
+- `launch.json`: 이어 실행 명령, 재사용 입력의 해시, 실행 메타데이터.
+- `checkpoints/`: 거부된 시뮬레이션까지 포함한 네이티브 결과·진단 기록. 진단 색인은 최초 결과 디렉터리의 파일도 참조한다.
 
-Additional records:
+추가 기록:
 
-- `results/gemini25fl-incre-full-rerun-20260909-baseline.json`: initial runtime
-  hashes and billing baseline.
-- `results/gemini38-incre-ab-rerun-20260909-baseline.json`: later Tavily reading
-  of 288 credits, used only for the billing reconciliation.
-- Earlier cohort: `results/gemini25fl-full-incre-eval-report.md` in the original
-  `EHR-ChatQA` worktree; its raw results remain separate.
-- Historical SQL-only selection: original-worktree
-  `temp/motivation-analysis/analyze_full_25fl_identifiers.py:118-165`.
-  `result_paths` and `first_valid_records` combine matching
-  `results/increqa32_k3/*.jsonl` files with
-  `results/motivation_k1_flash_lite/incre-{mimic,eicu}-{original,star}-allowed/`.
-  Files are sorted by filename timestamp and filename; the first non-null
-  reward per task ID is retained. `results/motivation_experiment_report.md`,
-  section 4.3, supplies the historical IncreQA table.
-- Naming audit input:
-  `results/flashlite-official-report-naming-audit/inputs/full-index.json`.
-  It references the four exact final checkpoints from `analysis.json`.
-- Naming audit outputs:
-  `results/flashlite-official-report-naming-audit/full-a/` and `full-b/`.
-  The unchanged `naming_audit` CLI completed twice with exit code 0; all seven
-  output files were byte-identical, and input checkpoint/database hashes were
-  unchanged. `calls.jsonl` retains each reference, classification, exclusion,
-  query and source coordinate; `trajectories.jsonl` retains stored rewards.
-  SQL-restricted full-tool naming totals filter `calls.jsonl` to Star
-  environments and `name=sql_execute`, then count `primary=true` occurrences.
+- `results/gemini25fl-incre-full-rerun-20260909-baseline.json`: 최초 런타임 해시와 과금 기준선.
+- `results/gemini38-incre-ab-rerun-20260909-baseline.json`: 후속 Tavily 288크레딧 관측값. 과금 대조에만 사용했다.
+- 이전 실행: 원래 `EHR-ChatQA` 작업 트리의 `results/gemini25fl-full-incre-eval-report.md`. 원시 결과도 별도로 보존돼 있다.
+- 기존 SQL-only 선택 규칙: 원래 작업 트리의 `temp/motivation-analysis/analyze_full_25fl_identifiers.py:118-165`. `result_paths`와 `first_valid_records`는 조건에 맞는 `results/increqa32_k3/*.jsonl` 파일과 `results/motivation_k1_flash_lite/incre-{mimic,eicu}-{original,star}-allowed/`를 합친다. 파일명의 시각과 파일명으로 정렬한 뒤, 태스크 ID별로 reward가 null이 아닌 첫 결과를 선택한다. 기존 IncreQA 표는 `results/motivation_experiment_report.md`의 4.3절에 있다.
+- 이름 분석 입력: `results/flashlite-official-report-naming-audit/inputs/full-index.json`. `analysis.json`의 최종 체크포인트 4개를 정확히 참조한다.
+- 이름 분석 출력: `results/flashlite-official-report-naming-audit/full-a/`와 `full-b/`. 변경하지 않은 `naming_audit` CLI를 두 번 실행해 모두 종료 코드 0을 확인했다. 출력 파일 7개는 전부 바이트 단위로 같고 입력 체크포인트·데이터베이스 해시도 유지됐다. `calls.jsonl`에는 개별 참조·분류·제외 이유·질의·원본 위치가, `trajectories.jsonl`에는 저장된 reward가 남아 있다. 풀툴의 SQL 한정 이름 집계는 `calls.jsonl`에서 Star 환경과 `name=sql_execute`만 고른 뒤 `primary=true`인 참조를 센 것이다.

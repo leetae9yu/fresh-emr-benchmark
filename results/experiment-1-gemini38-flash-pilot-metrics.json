@@ -1,0 +1,147 @@
+{
+  "generated_at": "2026-09-10T01:49:48.094Z",
+  "model": "openrouter/google/gemini-3.8-flash",
+  "increqa": {
+    "source": "gemini38-incre-ab-official-rerun-report.md",
+    "cohort": "2026-09-09 fresh A/B rerun",
+    "logical_tasks": 32,
+    "scored_outcomes": 128,
+    "attempts": 145,
+    "user_error_attempts": 17,
+    "per_condition_schema_n": 32,
+    "conditions": {
+      "A": {
+        "cells": [
+          {
+            "env": "eicu",
+            "n": 16,
+            "success": 12
+          },
+          {
+            "env": "eicu_star",
+            "n": 16,
+            "success": 11
+          },
+          {
+            "env": "mimic_iv",
+            "n": 16,
+            "success": 14
+          },
+          {
+            "env": "mimic_iv_star",
+            "n": 16,
+            "success": 14
+          }
+        ],
+        "original": 26,
+        "star": 25,
+        "tools": {
+          "sql_execute": 333
+        },
+        "totalTables": 423,
+        "totalColumns": 1801,
+        "originalTables": 1,
+        "originalColumns": 0,
+        "originalNameCalls": 1,
+        "originalNameTrajectories": 1,
+        "totalCalls": 333,
+        "starTrajectories": 32,
+        "metadataCalls": 101,
+        "originalExplorationOccurrences": 2,
+        "noSQL": 1,
+        "parseFailures": 0,
+        "unresolved": 2
+      },
+      "B": {
+        "cells": [
+          {
+            "env": "eicu",
+            "n": 16,
+            "success": 8
+          },
+          {
+            "env": "eicu_star",
+            "n": 16,
+            "success": 0
+          },
+          {
+            "env": "mimic_iv",
+            "n": 16,
+            "success": 15
+          },
+          {
+            "env": "mimic_iv_star",
+            "n": 16,
+            "success": 0
+          }
+        ],
+        "original": 23,
+        "star": 0,
+        "tools": {
+          "sql_execute": 937
+        },
+        "totalTables": 788,
+        "totalColumns": 82,
+        "originalTables": 181,
+        "originalColumns": 18,
+        "originalNameCalls": 191,
+        "originalNameTrajectories": 32,
+        "totalCalls": 937,
+        "starTrajectories": 32,
+        "metadataCalls": 152,
+        "originalExplorationOccurrences": 15,
+        "noSQL": 0,
+        "parseFailures": 1,
+        "unresolved": 8
+      }
+    },
+    "pooled_success": 74,
+    "pooled_n": 128
+  },
+  "adaptqa": {
+    "source": "EHR-ChatQA/results/gemini_3.8_flash_incre_adapt_pilot/RUN_MANIFEST.md and eight AdaptQA checkpoint files",
+    "cohort": "Separate historical pilot; not the latest IncreQA rerun",
+    "logical_tasks": 6,
+    "task_ids_per_database": [
+      0,
+      20,
+      35
+    ],
+    "scored_outcomes": 24,
+    "attempts": 33,
+    "user_error_attempts": 9,
+    "conditions": [
+      {
+        "schema": "Original",
+        "metadata": "Available",
+        "success": 5,
+        "n": 6
+      },
+      {
+        "schema": "Star",
+        "metadata": "Available",
+        "success": 5,
+        "n": 6
+      },
+      {
+        "schema": "Original",
+        "metadata": "Nonavailable",
+        "success": 3,
+        "n": 6
+      },
+      {
+        "schema": "Star",
+        "metadata": "Nonavailable",
+        "success": 0,
+        "n": 6
+      }
+    ],
+    "pooled_success": 13,
+    "pooled_n": 24
+  },
+  "full_tools": "No completed matched full-tool comparison included; stopped historical CDEF data excluded",
+  "naming_scope": "Latest IncreQA scored Star trajectories only;32 perinformationcondition; same scope-aware physical-reference analyzer. Alias/derived/literal/metadata-target mentions are not counted as physical references.",
+  "information_confound": "Available=allowed+benchmark;Nonavailable=blocked+identifier_free. Metadata and identifier guidance both change.",
+  "cross_flow_pooling": false,
+  "new_model_calls": 0
+}

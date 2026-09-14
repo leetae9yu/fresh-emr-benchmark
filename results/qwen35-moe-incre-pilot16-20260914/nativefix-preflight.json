@@ -1,0 +1,80 @@
+{
+  "status": "verified_ready_for_fresh_relaunch",
+  "root_cause": {
+    "file": "src/utils.py",
+    "mechanism": "The legacy Qwen content parser replaced native message.tool_calls with a parse of empty message.content.",
+    "invalid_launch_scored_slots": 31,
+    "invalid_launch_successes": 0,
+    "invalid_launch_openrouter_delta": 2.274955075
+  },
+  "fix": {
+    "behavior": "Apply the legacy Qwen text parser only when the provider did not return native tool_calls.",
+    "experimental_semantics_changed": false,
+    "old_source_digest": "b75f8761d83c5df93b444d8f2a40dbdbf13520ad2b709537dfad98e65c38e145",
+    "new_source_digest": "782d35661bf29b96dadd072ee2b40d80566089702b977722a4e1793222cc9825"
+  },
+  "verification": {
+    "red": "1 failed: native tool_calls were None",
+    "green": "1 passed",
+    "regression_suite": "38 passed, 4 warnings, 7 subtests passed",
+    "manual_exact_turn": {
+      "native_tool_calls": 1,
+      "action": "sql_execute",
+      "done": false,
+      "cost_usd": 0.001263125
+    }
+  },
+  "fresh_matrix": {
+    "expected_slots": 288,
+    "all_result_roots_absent_at_dry_run": true,
+    "configs": [
+      {
+        "path": "experiments/qwen35-35b-a3b-incre-sql-pilot16.toml",
+        "config_hash": "3f4d47b462c94947b379e0b8b84f14a4ae39c7d3abbd53cf950b413224f55d09",
+        "expected_slots": 64,
+        "jobs": 8,
+        "parallel_cells": 6
+      },
+      {
+        "path": "experiments/qwen35-122b-a10b-incre-sql-pilot16.toml",
+        "config_hash": "a838e54f31533239cc90a9f04fc77901308a5c0591f5c870272f5886635d6001",
+        "expected_slots": 64,
+        "jobs": 8,
+        "parallel_cells": 6
+      },
+      {
+        "path": "experiments/qwen35-397b-a17b-incre-sql-pilot16.toml",
+        "config_hash": "d02629070152773b1c25ffb49e5498bc485a88003f7b23f877a5b74206e3a89e",
+        "expected_slots": 64,
+        "jobs": 8,
+        "parallel_cells": 6
+      },
+      {
+        "path": "experiments/qwen35-35b-a3b-incre-full-pilot16.toml",
+        "config_hash": "2bfd648e299f99a392ceeeff9a4fa059614c4845a130b35af3b4ef49a1443538",
+        "expected_slots": 32,
+        "jobs": 4,
+        "parallel_cells": 4
+      },
+      {
+        "path": "experiments/qwen35-122b-a10b-incre-full-pilot16.toml",
+        "config_hash": "cbd4deb15effd7886dd550795b6737b1749ec115b506743aa3180f2f462b78f7",
+        "expected_slots": 32,
+        "jobs": 4,
+        "parallel_cells": 4
+      },
+      {
+        "path": "experiments/qwen35-397b-a17b-incre-full-pilot16.toml",
+        "config_hash": "85b7fde5a030bbdda5a51716f0948b0ca3c4b888a44182038fa488fc533e3e0a",
+        "expected_slots": 32,
+        "jobs": 4,
+        "parallel_cells": 4
+      }
+    ]
+  },
+  "guard": {
+    "original_openrouter_baseline": 147.272021025,
+    "stop_usage": 175.272021025,
+    "total_budget_usd_including_invalid_launch": 28
+  }
+}

@@ -1,0 +1,177 @@
+{
+  "status": "complete_verified",
+  "scope": {
+    "qa_set": "IncreQA",
+    "models": [
+      "Qwen3.5 35B-A3B",
+      "Qwen3.5 122B-A10B",
+      "Qwen3.5 397B-A17B"
+    ],
+    "logical_tasks": 16,
+    "schemas": ["Original", "Star"],
+    "arms": [
+      "Full Tools Available",
+      "SQL-only Available",
+      "SQL-only Unavailable"
+    ],
+    "trials": 1,
+    "expected_slots": 288
+  },
+  "canonical_cohort": {
+    "expected_slots": 288,
+    "raw_valid_records_in_final_roots": 295,
+    "canonical_slots": 288,
+    "missing_slots": 0,
+    "unexpected_slots": 0,
+    "discarded_recovery_duplicates": 7,
+    "selection_rule": "For each model, arm, schema, database and task ID, select the first valid record in filename-timestamp order.",
+    "recovery_note": "The unchanged-config Full 35B resume reran the incomplete eight-task MIMIC-IV Star job. The original seven valid records were retained and only the newly valid task 83 record was added.",
+    "invalid_initial_launch": {
+      "scored_records": 31,
+      "included_in_final_cohort": 0,
+      "reason": "The legacy Qwen content parser discarded provider-native tool_calls.",
+      "diagnostic": "preflight.json"
+    }
+  },
+  "root_integrity": {
+    "roots": 6,
+    "summaries_complete": 6,
+    "summary_completed_slots": 288,
+    "summary_errors": 0,
+    "summary_duplicate_task_ids": 0,
+    "source_digest": "782d35661bf29b96dadd072ee2b40d80566089702b977722a4e1793222cc9825",
+    "routing": {
+      "provider": "AtlasCloud",
+      "quantization": "fp8",
+      "allow_fallbacks": false,
+      "require_parameters": false
+    }
+  },
+  "roots": [
+    {
+      "model": "35B-A3B",
+      "arm": "SQL",
+      "config_hash": "3f4d47b462c94947b379e0b8b84f14a4ae39c7d3abbd53cf950b413224f55d09",
+      "completed": 64
+    },
+    {
+      "model": "122B-A10B",
+      "arm": "SQL",
+      "config_hash": "a838e54f31533239cc90a9f04fc77901308a5c0591f5c870272f5886635d6001",
+      "completed": 64
+    },
+    {
+      "model": "397B-A17B",
+      "arm": "SQL",
+      "config_hash": "d02629070152773b1c25ffb49e5498bc485a88003f7b23f877a5b74206e3a89e",
+      "completed": 64
+    },
+    {
+      "model": "35B-A3B",
+      "arm": "Full",
+      "config_hash": "2bfd648e299f99a392ceeeff9a4fa059614c4845a130b35af3b4ef49a1443538",
+      "completed": 32
+    },
+    {
+      "model": "122B-A10B",
+      "arm": "Full",
+      "config_hash": "cbd4deb15effd7886dd550795b6737b1749ec115b506743aa3180f2f462b78f7",
+      "completed": 32
+    },
+    {
+      "model": "397B-A17B",
+      "arm": "Full",
+      "config_hash": "85b7fde5a030bbdda5a51716f0948b0ca3c4b888a44182038fa488fc533e3e0a",
+      "completed": 32
+    }
+  ],
+  "attempts": {
+    "canonical_scored": 288,
+    "canonical_success": 162,
+    "canonical_failure": 126,
+    "reward_null_records_in_final_roots": 79,
+    "reward_null_user_error": 77,
+    "reward_null_other": 2,
+    "agent_timeouts": 0
+  },
+  "billing": {
+    "openrouter_baseline_usage": 147.272021025,
+    "openrouter_final_usage": 167.450084895,
+    "openrouter_actual_delta_usd": 20.17806387,
+    "openrouter_guard_usd": 28.0,
+    "guard_headroom_usd": 7.82193613,
+    "canonical_saved_cost_usd": 14.79060487,
+    "all_final_root_saved_attempt_cost_usd": 18.03869074,
+    "invalid_launch_delta_at_stop_usd": 2.274955075,
+    "tavily_baseline": 538,
+    "tavily_final": 538,
+    "tavily_delta": 0
+  },
+  "runtime_minutes": {
+    "sql_35b": 28.12,
+    "sql_122b": 31.73,
+    "sql_397b": 39.25,
+    "full_35b_including_recovery": 20.77,
+    "full_122b": 20.60,
+    "full_397b": 26.71
+  },
+  "native_tool_fix": {
+    "file": "src/utils.py",
+    "behavior": "Run the legacy Qwen text parser only when provider-native tool_calls are absent.",
+    "experimental_conditions_changed": false,
+    "red_test": "1 failed: native tool_calls were None",
+    "green_test": "1 passed",
+    "regression_suite": "38 passed, 4 warnings, 7 subtests passed",
+    "manual_exact_turn": "native tool_calls=1, action=sql_execute",
+    "final_canonical_trajectories_without_tool_calls": 0
+  },
+  "naming_validation": {
+    "star_trajectories": 144,
+    "observed_transcripts": 144,
+    "analyzer_tests": "68 passed",
+    "analyzer_files_checked": 11,
+    "reviewer_sha256": "8895ef6eb21870cd7e6ea069eb7e8f119461d2b62dce4539d4fb4fc74f5c83cc",
+    "analyzer_and_reviewer_unchanged": true,
+    "network_calls": 0,
+    "generated_sql_executions": 0
+  },
+  "faiss": [
+    {
+      "env": "mimic_iv",
+      "index_sha256": "0b028d114c7b51b862f4e5eea65d5bfd9ea5aae7e7cbccaa08d7a19ccff5b3ee",
+      "vectors": 196674,
+      "documents": 196674,
+      "dimension": 3072,
+      "matches_previous_verified_cache": true
+    },
+    {
+      "env": "mimic_iv_star",
+      "index_sha256": "6b2b7338317884a4c0719db81e1c5c39e2e76f72ef996e3d97af481bb6036585",
+      "vectors": 196674,
+      "documents": 196674,
+      "dimension": 3072,
+      "matches_previous_verified_cache": true
+    },
+    {
+      "env": "eicu",
+      "index_sha256": "2da09a6c019969b836c4b24a4708d7cf87708ca0aaa8c6469c3c9c7fe0efe41f",
+      "vectors": 4041,
+      "documents": 4041,
+      "dimension": 3072,
+      "matches_previous_verified_cache": true
+    },
+    {
+      "env": "eicu_star",
+      "index_sha256": "f4db506aed3662601a006b0043a2600325fcab9beff2b0f312f3847d7d70c522",
+      "vectors": 4041,
+      "documents": 4041,
+      "dimension": 3072,
+      "matches_previous_verified_cache": true
+    }
+  ],
+  "final_state": {
+    "active_qwen_processes": 0,
+    "memory_available_gib": 16.18,
+    "disk_free_gib": 15.43
+  }
+}

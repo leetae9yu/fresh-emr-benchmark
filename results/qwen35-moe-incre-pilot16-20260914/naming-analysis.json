@@ -1,0 +1,196 @@
+{
+  "format_version": 1,
+  "status": "complete_verified",
+  "scope": {
+    "schemas_analyzed": ["Star"],
+    "canonical_scored_trajectories": 144,
+    "observed_transcripts": 144,
+    "reward_zero_included": true,
+    "reward_null_excluded": true
+  },
+  "method": {
+    "core": "Unchanged naming_audit extract_calls, trajectory and aggregate functions.",
+    "metadata": "Unchanged review_metadata review and counts functions; supplementary metadata remains separate.",
+    "canonical_selection": "First valid record per model, arm, schema, database and task in checkpoint filename-timestamp order.",
+    "included": "SQL physical references and explicit table/column arguments in column_search and value-search tools.",
+    "excluded": "Aliases, CTEs, derived aliases, natural language, clinical literals and table_search input.",
+    "matching": "Case-insensitive exact role-specific membership; underscores preserved; no semantic similarity.",
+    "uncertainty": "Parser failures and unresolved lineage are not promoted to confirmed references."
+  },
+  "groups": [
+    {
+      "model": "35B-A3B",
+      "arm": "Full Available",
+      "scored": 16,
+      "success": 13,
+      "tool_calls": 183,
+      "sql_calls": 106,
+      "parse_failure_calls": 1,
+      "unresolved_calls": 3,
+      "primary_table_denominator": 232,
+      "primary_column_denominator": 1155,
+      "original_only": {"table": 0, "column": 0, "total": 0, "affected_calls": 0, "affected_trajectories": 0},
+      "star_only": {"table": 223, "column": 1148, "total": 1371, "affected_calls": 164, "affected_trajectories": 16}
+    },
+    {
+      "model": "35B-A3B",
+      "arm": "SQL Available",
+      "scored": 16,
+      "success": 10,
+      "tool_calls": 214,
+      "sql_calls": 214,
+      "parse_failure_calls": 1,
+      "unresolved_calls": 4,
+      "primary_table_denominator": 242,
+      "primary_column_denominator": 1162,
+      "original_only": {"table": 1, "column": 6, "total": 7, "affected_calls": 4, "affected_trajectories": 4},
+      "star_only": {"table": 228, "column": 1060, "total": 1288, "affected_calls": 148, "affected_trajectories": 16}
+    },
+    {
+      "model": "35B-A3B",
+      "arm": "SQL Unavailable",
+      "scored": 16,
+      "success": 0,
+      "tool_calls": 468,
+      "sql_calls": 468,
+      "parse_failure_calls": 0,
+      "unresolved_calls": 0,
+      "primary_table_denominator": 469,
+      "primary_column_denominator": 433,
+      "original_only": {"table": 42, "column": 70, "total": 112, "affected_calls": 76, "affected_trajectories": 16},
+      "star_only": {"table": 22, "column": 53, "total": 75, "affected_calls": 52, "affected_trajectories": 6}
+    },
+    {
+      "model": "122B-A10B",
+      "arm": "Full Available",
+      "scored": 16,
+      "success": 14,
+      "tool_calls": 203,
+      "sql_calls": 117,
+      "parse_failure_calls": 2,
+      "unresolved_calls": 3,
+      "primary_table_denominator": 281,
+      "primary_column_denominator": 1081,
+      "original_only": {"table": 0, "column": 2, "total": 2, "affected_calls": 1, "affected_trajectories": 1},
+      "star_only": {"table": 262, "column": 1062, "total": 1324, "affected_calls": 180, "affected_trajectories": 16}
+    },
+    {
+      "model": "122B-A10B",
+      "arm": "SQL Available",
+      "scored": 16,
+      "success": 14,
+      "tool_calls": 198,
+      "sql_calls": 198,
+      "parse_failure_calls": 0,
+      "unresolved_calls": 1,
+      "primary_table_denominator": 206,
+      "primary_column_denominator": 984,
+      "original_only": {"table": 1, "column": 1, "total": 2, "affected_calls": 2, "affected_trajectories": 2},
+      "star_only": {"table": 195, "column": 965, "total": 1160, "affected_calls": 136, "affected_trajectories": 16}
+    },
+    {
+      "model": "122B-A10B",
+      "arm": "SQL Unavailable",
+      "scored": 16,
+      "success": 0,
+      "tool_calls": 470,
+      "sql_calls": 470,
+      "parse_failure_calls": 0,
+      "unresolved_calls": 0,
+      "primary_table_denominator": 449,
+      "primary_column_denominator": 338,
+      "original_only": {"table": 44, "column": 9, "total": 53, "affected_calls": 45, "affected_trajectories": 13},
+      "star_only": {"table": 21, "column": 80, "total": 101, "affected_calls": 90, "affected_trajectories": 7}
+    },
+    {
+      "model": "397B-A17B",
+      "arm": "Full Available",
+      "scored": 16,
+      "success": 13,
+      "tool_calls": 189,
+      "sql_calls": 116,
+      "parse_failure_calls": 0,
+      "unresolved_calls": 1,
+      "primary_table_denominator": 271,
+      "primary_column_denominator": 1283,
+      "original_only": {"table": 0, "column": 0, "total": 0, "affected_calls": 0, "affected_trajectories": 0},
+      "star_only": {"table": 259, "column": 1248, "total": 1507, "affected_calls": 170, "affected_trajectories": 16}
+    },
+    {
+      "model": "397B-A17B",
+      "arm": "SQL Available",
+      "scored": 16,
+      "success": 13,
+      "tool_calls": 204,
+      "sql_calls": 204,
+      "parse_failure_calls": 0,
+      "unresolved_calls": 0,
+      "primary_table_denominator": 226,
+      "primary_column_denominator": 1195,
+      "original_only": {"table": 6, "column": 17, "total": 23, "affected_calls": 10, "affected_trajectories": 7},
+      "star_only": {"table": 205, "column": 1096, "total": 1301, "affected_calls": 138, "affected_trajectories": 16}
+    },
+    {
+      "model": "397B-A17B",
+      "arm": "SQL Unavailable",
+      "scored": 16,
+      "success": 0,
+      "tool_calls": 468,
+      "sql_calls": 468,
+      "parse_failure_calls": 0,
+      "unresolved_calls": 0,
+      "primary_table_denominator": 439,
+      "primary_column_denominator": 204,
+      "original_only": {"table": 70, "column": 44, "total": 114, "affected_calls": 99, "affected_trajectories": 15},
+      "star_only": {"table": 17, "column": 24, "total": 41, "affected_calls": 33, "affected_trajectories": 6}
+    }
+  ],
+  "totals": {
+    "scored": 144,
+    "observed": 144,
+    "success": 77,
+    "tool_calls": 2597,
+    "sql_calls": 2361,
+    "parse_failure_calls": 4,
+    "unresolved_calls": 12,
+    "primary_table_denominator": 2815,
+    "primary_column_denominator": 7835,
+    "original_only": {"table": 164, "column": 149, "total": 313, "affected_calls": 237, "affected_trajectories": 58},
+    "star_only": {"table": 1432, "column": 6736, "total": 8168, "affected_calls": 1111, "affected_trajectories": 115},
+    "zero_sql_trajectories": 0,
+    "supplementary_metadata": {
+      "screened_calls": 270,
+      "parse_failure_calls": 0,
+      "original_only_occurrences": 1,
+      "original_only_calls": 1,
+      "original_only_trajectories": 1,
+      "original_only_table_occurrences": 1,
+      "original_only_column_occurrences": 0,
+      "ambiguous_occurrences": 0,
+      "excluded_occurrences": 473
+    }
+  },
+  "dependencies": {
+    "python": "3.11.13",
+    "pydantic": "2.11.9",
+    "sqlglot": "27.14.0",
+    "sqlite": "3.34.1"
+  },
+  "schema_set_counts": {
+    "mimic_iv": {
+      "table": {"original_only": 17, "star_only": 18, "shared": 0},
+      "column": {"original_only": 42, "star_only": 47, "shared": 7}
+    },
+    "eicu": {
+      "table": {"original_only": 7, "star_only": 7, "shared": 4},
+      "column": {"original_only": 55, "star_only": 55, "shared": 8}
+    }
+  },
+  "validation": {
+    "analyzer_tests": 68,
+    "analyzer_tests_passed": 68,
+    "unexpected_core_exceptions": 0,
+    "unexpected_metadata_exceptions": 0,
+    "analyzer_and_reviewer_files_unchanged": true
+  }
+}

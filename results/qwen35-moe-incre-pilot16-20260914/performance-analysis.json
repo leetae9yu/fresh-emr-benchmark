@@ -1,0 +1,99 @@
+{
+  "format_version": 1,
+  "status": "complete_verified",
+  "canonical_slots": 288,
+  "overall": {
+    "success": 162,
+    "scored": 288,
+    "rate_percent": 56.25
+  },
+  "matrix": [
+    {
+      "model": "35B-A3B",
+      "full_original": [13, 16],
+      "full_star": [13, 16],
+      "sql_available_original": [13, 16],
+      "sql_available_star": [10, 16],
+      "sql_unavailable_original": [0, 16],
+      "sql_unavailable_star": [0, 16]
+    },
+    {
+      "model": "122B-A10B",
+      "full_original": [12, 16],
+      "full_star": [14, 16],
+      "sql_available_original": [15, 16],
+      "sql_available_star": [14, 16],
+      "sql_unavailable_original": [1, 16],
+      "sql_unavailable_star": [0, 16]
+    },
+    {
+      "model": "397B-A17B",
+      "full_original": [15, 16],
+      "full_star": [13, 16],
+      "sql_available_original": [12, 16],
+      "sql_available_star": [13, 16],
+      "sql_unavailable_original": [4, 16],
+      "sql_unavailable_star": [0, 16]
+    }
+  ],
+  "arm_totals": {
+    "full_available": [80, 96],
+    "sql_available": [77, 96],
+    "sql_unavailable": [5, 96]
+  },
+  "schema_totals": {
+    "full_original": [40, 48],
+    "full_star": [40, 48],
+    "sql_available_original": [40, 48],
+    "sql_available_star": [37, 48],
+    "sql_unavailable_original": [5, 48],
+    "sql_unavailable_star": [0, 48]
+  },
+  "paired_original_vs_star": [
+    {"model": "35B-A3B", "arm": "Full Available", "both_success": 11, "star_rescue": 2, "star_regression": 2, "both_failure": 1},
+    {"model": "35B-A3B", "arm": "SQL Available", "both_success": 9, "star_rescue": 1, "star_regression": 4, "both_failure": 2},
+    {"model": "35B-A3B", "arm": "SQL Unavailable", "both_success": 0, "star_rescue": 0, "star_regression": 0, "both_failure": 16},
+    {"model": "122B-A10B", "arm": "Full Available", "both_success": 12, "star_rescue": 2, "star_regression": 0, "both_failure": 2},
+    {"model": "122B-A10B", "arm": "SQL Available", "both_success": 13, "star_rescue": 1, "star_regression": 2, "both_failure": 0},
+    {"model": "122B-A10B", "arm": "SQL Unavailable", "both_success": 0, "star_rescue": 0, "star_regression": 1, "both_failure": 15},
+    {"model": "397B-A17B", "arm": "Full Available", "both_success": 12, "star_rescue": 1, "star_regression": 3, "both_failure": 0},
+    {"model": "397B-A17B", "arm": "SQL Available", "both_success": 10, "star_rescue": 3, "star_regression": 2, "both_failure": 1},
+    {"model": "397B-A17B", "arm": "SQL Unavailable", "both_success": 0, "star_rescue": 0, "star_regression": 4, "both_failure": 12}
+  ],
+  "paired_full_vs_sql_available": [
+    {"model": "35B-A3B", "schema": "Original", "both_success": 11, "full_only": 2, "sql_only": 2, "both_failure": 1},
+    {"model": "35B-A3B", "schema": "Star", "both_success": 9, "full_only": 4, "sql_only": 1, "both_failure": 2},
+    {"model": "122B-A10B", "schema": "Original", "both_success": 11, "full_only": 1, "sql_only": 4, "both_failure": 0},
+    {"model": "122B-A10B", "schema": "Star", "both_success": 14, "full_only": 0, "sql_only": 0, "both_failure": 2},
+    {"model": "397B-A17B", "schema": "Original", "both_success": 11, "full_only": 4, "sql_only": 1, "both_failure": 0},
+    {"model": "397B-A17B", "schema": "Star", "both_success": 11, "full_only": 2, "sql_only": 2, "both_failure": 1}
+  ],
+  "paired_sql_available_vs_unavailable": [
+    {"model": "35B-A3B", "schema": "Original", "both_success": 0, "available_only": 13, "unavailable_only": 0, "both_failure": 3},
+    {"model": "35B-A3B", "schema": "Star", "both_success": 0, "available_only": 10, "unavailable_only": 0, "both_failure": 6},
+    {"model": "122B-A10B", "schema": "Original", "both_success": 1, "available_only": 14, "unavailable_only": 0, "both_failure": 1},
+    {"model": "122B-A10B", "schema": "Star", "both_success": 0, "available_only": 14, "unavailable_only": 0, "both_failure": 2},
+    {"model": "397B-A17B", "schema": "Original", "both_success": 3, "available_only": 9, "unavailable_only": 1, "both_failure": 3},
+    {"model": "397B-A17B", "schema": "Star", "both_success": 0, "available_only": 13, "unavailable_only": 0, "both_failure": 3}
+  ],
+  "canonical_saved_cost_usd_by_model_arm": [
+    {"model": "35B-A3B", "arm": "Full Available", "cost": 1.10722845},
+    {"model": "35B-A3B", "arm": "SQL Available", "cost": 1.31539129},
+    {"model": "35B-A3B", "arm": "SQL Unavailable", "cost": 1.37998572},
+    {"model": "122B-A10B", "arm": "Full Available", "cost": 1.18113188},
+    {"model": "122B-A10B", "arm": "SQL Available", "cost": 0.98371476},
+    {"model": "122B-A10B", "arm": "SQL Unavailable", "cost": 1.33035412},
+    {"model": "397B-A17B", "arm": "Full Available", "cost": 2.68356410},
+    {"model": "397B-A17B", "arm": "SQL Available", "cost": 1.80228745},
+    {"model": "397B-A17B", "arm": "SQL Unavailable", "cost": 3.00694710}
+  ],
+  "interpretation": {
+    "motivation_1": "Full Available totaled 80/96 versus SQL Available 77/96. The direction was model- and schema-dependent rather than uniformly favoring Full or Star.",
+    "motivation_2": "SQL Available totaled 77/96 versus SQL Unavailable 5/96. All five Unavailable successes occurred on Original; Star Unavailable was 0/48.",
+    "motivation_3": "Full totals were 26, 26 and 28; SQL Available totals were 23, 29 and 25; SQL Unavailable totals were 0, 1 and 4 from smallest to largest. The family replication does not show one monotonic size trend across all conditions."
+  },
+  "statistical_scope": {
+    "p_values_reported": false,
+    "reason": "Selected 16-task pilot with k=1; report raw counts and paired transitions."
+  }
+}

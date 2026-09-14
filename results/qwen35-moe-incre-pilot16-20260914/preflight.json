@@ -1,0 +1,128 @@
+{
+  "status": "paused_native_tool_parser_incompatibility",
+  "captured_at": "2026-09-14T00:54:53.456632+00:00",
+  "scope": {
+    "models": ["qwen35-35b-a3b", "qwen35-122b-a10b", "qwen35-397b-a17b"],
+    "qa_set": "IncreQA",
+    "logical_tasks": 16,
+    "tasks_per_database": 8,
+    "schemas": ["Original", "Star"],
+    "arms": ["full-tools-available", "sql-only-available", "sql-only-unavailable"],
+    "trials": 1,
+    "fresh_slots": 288
+  },
+  "routing": {
+    "provider": "AtlasCloud",
+    "quantization": "fp8",
+    "allow_fallbacks": false,
+    "require_parameters": false
+  },
+  "parallelism": {
+    "sql_parallel_cells_per_model": 6,
+    "sql_configs_launched_together": 3,
+    "sql_max_cells": 18,
+    "full_parallel_cells_per_model": 4,
+    "full_models_run_as_sequential_waves": true,
+    "inner_max_concurrency": 1
+  },
+  "task_ids": {
+    "mimic_iv": [54, 66, 83, 84, 87, 92, 94, 112],
+    "eicu": [16, 46, 66, 71, 79, 100, 114, 131]
+  },
+  "baseline": {
+    "openrouter_usage": 147.272021025,
+    "openrouter_limit": 200,
+    "openrouter_remaining": 52.727978975,
+    "tavily_plan_usage": 538,
+    "memory_available_gib": 13.261127471923828,
+    "disk_free_gib": 15.35605239868164,
+    "active_experiment_processes": 0
+  },
+  "guards": {
+    "openrouter_budget_usd": 28,
+    "openrouter_stop_usage": 175.272021025,
+    "tavily_stop_plan_usage": 900,
+    "memory_stop_available_gib": 1.5,
+    "disk_stop_free_gib": 2.0,
+    "status_interval_minutes": 30
+  },
+  "smokes": [
+    {"model": "openrouter/qwen/qwen3.5-35b-a3b", "tool": "sql_execute", "query": "SELECT 1;", "finish_reason": "tool_calls", "cost_usd": 0.0002275},
+    {"model": "openrouter/qwen/qwen3.5-122b-a10b", "tool": "sql_execute", "query": "SELECT 1;", "finish_reason": "tool_calls", "cost_usd": 0.00023712},
+    {"model": "openrouter/qwen/qwen3.5-397b-a17b", "tool": "sql_execute", "query": "SELECT 1;", "finish_reason": "tool_calls", "cost_usd": 0.0005131}
+  ],
+  "paused_launch_diagnostic": {
+    "stopped_at": "2026-09-14T01:14:47.682514+00:00",
+    "reason": "get_action unconditionally reparses every model name containing qwen from message.content, discarding OpenRouter native tool_calls when content is empty",
+    "affected_scored_slots": 31,
+    "affected_successes": 0,
+    "affected_slots_with_native_tool_calls_preserved": 0,
+    "coverage_by_model": {
+      "qwen35-35b-a3b": 10,
+      "qwen35-122b-a10b": 10,
+      "qwen35-397b-a17b": 11
+    },
+    "openrouter_usage_at_stop": 149.5469761,
+    "openrouter_delta_at_stop": 2.274955075,
+    "live_qwen_processes_at_stop": 0,
+    "exact_35b_reproduction": {
+      "finish_reason": "tool_calls",
+      "native_tool_calls": 1,
+      "reasoning_tokens": 616,
+      "completion_tokens": 798,
+      "cost_usd": 0.00182835
+    },
+    "required_decision": "Allow a minimal tested runtime compatibility fix, or abandon this native-tool Qwen pilot under the config-only restriction"
+  },
+  "source_digest": "b75f8761d83c5df93b444d8f2a40dbdbf13520ad2b709537dfad98e65c38e145",
+  "configs": [
+    {
+      "path": "experiments/qwen35-35b-a3b-incre-sql-pilot16.toml",
+      "sha256": "46de609dc5b062eb7ac078c44b105dbcd99b9b24b8640ccb2e2be85705b76a12",
+      "config_hash": "f80b9464d98b1e1dbffff24cd2d693ddd20e7422cc7ff8b884822741cbc4ddcc",
+      "expected_tasks": 64,
+      "jobs": 8,
+      "parallel_cells": 6
+    },
+    {
+      "path": "experiments/qwen35-122b-a10b-incre-sql-pilot16.toml",
+      "sha256": "565df5eabc9def4fe2c236e68028346c0350dcdcfbfa5d2f6367b3c8426b625a",
+      "config_hash": "a8dacc9d8c4d41cd3c4aa44293c0557585bf00ad907aa5f6ad5704d54cf1f1b2",
+      "expected_tasks": 64,
+      "jobs": 8,
+      "parallel_cells": 6
+    },
+    {
+      "path": "experiments/qwen35-397b-a17b-incre-sql-pilot16.toml",
+      "sha256": "3c80e42eaee0d5897b0f6f93b9feb0c9a241ba25becbe6bc13e070d467a189f0",
+      "config_hash": "736c130c56c5d056c2a8369e13734e8d33dcec6b54f8163e5f725d80ea7cce13",
+      "expected_tasks": 64,
+      "jobs": 8,
+      "parallel_cells": 6
+    },
+    {
+      "path": "experiments/qwen35-35b-a3b-incre-full-pilot16.toml",
+      "sha256": "e4b227c8cf751ddaab341ebb5baa5e5208e726feffd1ef66a8062fa372aaffc3",
+      "config_hash": "9ef3a3a04a8c267783e827612141363224ece6cd6ee89d8171bd2cab37fe1524",
+      "expected_tasks": 32,
+      "jobs": 4,
+      "parallel_cells": 4
+    },
+    {
+      "path": "experiments/qwen35-122b-a10b-incre-full-pilot16.toml",
+      "sha256": "1dd7bc2c3f2b5d358d4bf21407248af94511d3a5fc6dbf60d84aaf89e5efc3c3",
+      "config_hash": "3459ef16f81209bf6297b6f645e19a56fdc1827e1bd242516ebea38f07e76d28",
+      "expected_tasks": 32,
+      "jobs": 4,
+      "parallel_cells": 4
+    },
+    {
+      "path": "experiments/qwen35-397b-a17b-incre-full-pilot16.toml",
+      "sha256": "7bfbeadfb76f1e2a3158767fcc96c2ee5a21109a72d6957059271de881afb77e",
+      "config_hash": "c9e4634903e30e001bbdfe313f67543e3a708954a49b0ac3703ba1abd11906f2",
+      "expected_tasks": 32,
+      "jobs": 4,
+      "parallel_cells": 4
+    }
+  ]
+}

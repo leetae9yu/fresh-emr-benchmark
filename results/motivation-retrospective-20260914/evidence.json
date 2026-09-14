@@ -1,0 +1,184 @@
+{
+  "status": "complete_verified_synthesis",
+  "scope": "Completed motivation-relevant EHR-ChatQA experiments through 2026-09-14; no experiment reruns or rescoring.",
+  "authoritative_motivations": {
+    "motivation_1": "With metadata available, compare Original versus Star and Full Tools versus SQL-only in performance and in Original-only versus Star-only table/column identifier use on Star trajectories.",
+    "motivation_2": "Within Motivation 1's SQL-only condition, compare Metadata Available versus Unavailable.",
+    "motivation_3": "Repeat Motivation 1 across known-size model families without assuming a required directional trend."
+  },
+  "primary_complete_cohorts": [
+    {
+      "family": "Ministral",
+      "models": ["3B", "8B", "14B"],
+      "tasks": 80,
+      "k": 1,
+      "canonical_slots": 1440,
+      "covers": ["M1", "M2", "M3"],
+      "report": "../ministral-incre-subset80-20260911/report.md"
+    },
+    {
+      "family": "GPT-OSS",
+      "models": ["20B", "120B"],
+      "tasks": 80,
+      "k": 1,
+      "canonical_slots": 960,
+      "covers": ["M1", "M2", "M3"],
+      "report": "../gpt-oss-incre-subset80-20260913/report.md"
+    },
+    {
+      "family": "Qwen3.5 MoE",
+      "models": ["35B-A3B", "122B-A10B", "397B-A17B"],
+      "tasks": 16,
+      "k": 1,
+      "canonical_slots": 288,
+      "covers": ["M1", "M2", "M3"],
+      "report": "../qwen35-moe-incre-pilot16-20260914/report.md"
+    }
+  ],
+  "primary_totals": {
+    "families": 3,
+    "model_sizes": 8,
+    "canonical_slots": 2688,
+    "success": 941,
+    "full_available": [510, 896],
+    "sql_available": [420, 896],
+    "sql_unavailable": [11, 896],
+    "star_sql_unavailable": [0, 448]
+  },
+  "primary_family_performance": [
+    {"family": "Ministral", "full_available": [208, 480], "sql_available": [133, 480], "sql_unavailable": [0, 480]},
+    {"family": "GPT-OSS", "full_available": [222, 320], "sql_available": [210, 320], "sql_unavailable": [6, 320]},
+    {"family": "Qwen3.5 MoE pilot", "full_available": [80, 96], "sql_available": [77, 96], "sql_unavailable": [5, 96]}
+  ],
+  "motivation_1": {
+    "coverage_grade": "A-",
+    "full_vs_sql_model_schema_cells": {
+      "full_higher": 11,
+      "tie": 4,
+      "full_lower": 1,
+      "total": 16
+    },
+    "star_direction": "Neither Full nor SQL Available shows a universal Original-to-Star penalty or benefit.",
+    "primary_naming": {
+      "full_original_only_occurrences": 17,
+      "sql_available_original_only_occurrences": 751,
+      "full_original_affected_trajectories": [11, 439],
+      "sql_available_original_affected_trajectories": [196, 439],
+      "full_star_only_occurrences": 30190,
+      "sql_available_star_only_occurrences": 33867
+    },
+    "verdict": "Performance benefit is conditional, but Full Tools' reduction of Original-only identifier reuse on Star is highly consistent."
+  },
+  "motivation_2": {
+    "coverage_grade": "A",
+    "primary_performance": {
+      "sql_available": [420, 896],
+      "sql_unavailable": [11, 896],
+      "available_higher_model_schema_cells": [16, 16],
+      "unavailable_successes_original": 11,
+      "unavailable_successes_star": 0
+    },
+    "primary_naming": {
+      "sql_available_original_only_occurrences": 751,
+      "sql_unavailable_original_only_occurrences": 1704,
+      "sql_available_original_affected_trajectories": [196, 439],
+      "sql_unavailable_original_affected_trajectories": [306, 441]
+    },
+    "gemini38_support": {
+      "available_original": [26, 32],
+      "available_star": [25, 32],
+      "unavailable_original": [23, 32],
+      "unavailable_star": [0, 32],
+      "star_original_affected_trajectories_available": [1, 32],
+      "star_original_affected_trajectories_unavailable": [32, 32]
+    },
+    "estimand": "Metadata is the combined treatment: allowed plus benchmark guidance versus blocked plus identifier-free guidance.",
+    "verdict": "This is the strongest and most replicated motivation result."
+  },
+  "motivation_3": {
+    "coverage_grade": "B+",
+    "family_scaling": [
+      {
+        "family": "Ministral",
+        "full_available_successes_per_160": [47, 75, 86],
+        "sql_available_successes_per_160": [19, 48, 66],
+        "sql_available_original_only_occurrences": [84, 237, 360],
+        "pattern": "monotonic"
+      },
+      {
+        "family": "GPT-OSS",
+        "full_available_successes_per_160": [112, 110],
+        "sql_available_successes_per_160": [105, 105],
+        "sql_available_original_only_occurrences": [25, 13],
+        "pattern": "flat_or_reversed"
+      },
+      {
+        "family": "Qwen3.5 MoE",
+        "full_available_successes_per_32": [26, 26, 28],
+        "sql_available_successes_per_32": [23, 29, 25],
+        "sql_available_original_only_occurrences": [7, 2, 23],
+        "pattern": "non_monotonic"
+      }
+    ],
+    "verdict": "Known-size family replication is complete descriptively, but no universal size trend is supported."
+  },
+  "supporting_cohorts": [
+    {
+      "cohort": "Gemini 2.5 Flash-Lite official-user Full Tools IncreQA",
+      "coverage": "M1 Full arm plus scope-aware naming",
+      "performance_original_star": [[136, 286], [147, 286]],
+      "original_only_all_tool_occurrences": 124,
+      "original_affected_star_trajectories": [27, 286],
+      "source": "analysis/schema-name-audit:results/gemini25fl-incre-full-official-rerun-report.md"
+    },
+    {
+      "cohort": "Gemini 3.8 Flash official-user SQL-only A/B IncreQA",
+      "coverage": "M2 complete; M1 SQL arm only",
+      "performance": {
+        "available_original": [26, 32],
+        "available_star": [25, 32],
+        "unavailable_original": [23, 32],
+        "unavailable_star": [0, 32]
+      },
+      "source": "analysis/schema-name-audit:results/gemini38-incre-ab-official-rerun-report.md"
+    },
+    {
+      "cohort": "Gemini 2.5 Flash-Lite legacy SQL-only full-task IncreQA",
+      "coverage": "Historical M1 SQL arm and M2",
+      "performance": {
+        "available_original": [56, 286],
+        "available_star": [41, 286],
+        "unavailable_original": [5, 286],
+        "unavailable_star": [1, 286]
+      },
+      "source": "analysis/schema-name-audit:results/motivation_experiment_report.md"
+    },
+    {
+      "cohort": "Gemma 4 26B-A4B pilot",
+      "coverage": "Small M2-shaped SQL-only pilot",
+      "available": [6, 12],
+      "unavailable": [0, 12],
+      "source": "memory:notes/ehr-chatqa-gemma4-pilot.md"
+    }
+  ],
+  "excluded_or_superseded": [
+    "Ministral pilot slots reused inside subset80 are not additional replication.",
+    "Older Gemini 3.8 expanded A/B is superseded by the official-user A/B rerun.",
+    "Older Flash-Lite Full runs are mixed-source and superseded by official-user reruns.",
+    "Gemini CDEF stopped at 43/256 and cannot fill the missing Full control.",
+    "SQL_VALUE/value-similarity studies do not count as six-tool Full Tools.",
+    "Reasoning variants, endpoint smokes and canceled partial runs are compatibility evidence, not headline cohorts."
+  ],
+  "remaining_gaps": [
+    "Run Gemini 3.8 Flash Full Tools Available on the same 32-task A/B subset to complete M1 for the main backbone.",
+    "Extend Qwen3.5 MoE to the shared 80-task subset for matched cross-family coverage.",
+    "Add repeated trials to estimate per-task reliability; current primary cohorts are k=1.",
+    "Only if a narrower mechanism is needed, separate catalog access from identifier-bearing guidance and decompose the Full Tools bundle."
+  ],
+  "overall_assessment": {
+    "design_alignment": "A / approximately 9 of 10",
+    "paper_ready_descriptive_alignment": "high",
+    "causal_or_population_evidence": "moderate",
+    "one_sentence": "The evidence strongly supports schema-information dependence and tool-assisted schema adaptation, while showing that renaming and model-size effects are conditional rather than universally directional."
+  }
+}

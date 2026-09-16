@@ -1,0 +1,53 @@
+# Qwen3 32B Full Tools pilot on the frozen 16-task IncreQA subset.
+name = "qwen3-32b-incre-full16-20260915"
+description = "Qwen3 32B IncreQA pilot16 Full Tools x Original/Star x Available, detailed, k1."
+envs = ["mimic_iv", "mimic_iv_star", "eicu", "eicu_star"]
+task_types = ["incre"]
+trials = 1
+parallel_cells = 4
+result_root = "../results/config-runner"
+
+[source]
+path = ".."
+python = "../EHR-ChatQA/.venv/bin/python"
+
+[defaults]
+embedding_model = "openrouter/openai/text-embedding-3-large"
+agent_strategy = "tool-calling"
+max_concurrency = 1
+max_agent_turns = 30
+max_retry = 10
+timeout = 600
+verbose = false
+
+[user]
+model = "openrouter/google/gemini-2.5-flash-lite"
+temperature = 1.0
+strategy = "nested-reflection"
+
+[validator]
+model = "openrouter/google/gemini-2.5-flash"
+trials = 1
+
+[[models]]
+name = "qwen3-32b"
+model = "openrouter/qwen/qwen3-32b"
+temperature = 0.0
+
+[[conditions]]
+name = "available"
+tool_mode = "full"
+metadata = "Available"
+failure_feedback = "detailed"
+
+[task_ids.mimic_iv]
+incre = [54, 66, 83, 84, 87, 92, 94, 112]
+
+[task_ids.mimic_iv_star]
+incre = [54, 66, 83, 84, 87, 92, 94, 112]
+
+[task_ids.eicu]
+incre = [16, 46, 66, 71, 79, 100, 114, 131]
+
+[task_ids.eicu_star]
+incre = [16, 46, 66, 71, 79, 100, 114, 131]

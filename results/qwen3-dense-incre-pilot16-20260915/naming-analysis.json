@@ -1,0 +1,367 @@
+{
+  "format_version": 1,
+  "status": "complete_verified",
+  "scope": {
+    "schemas_analyzed": [
+      "Star"
+    ],
+    "canonical_scored_trajectories": 144,
+    "observed_transcripts": 124,
+    "empty_timeout_trajectories": 20,
+    "reward_zero_included": true,
+    "reward_null_excluded": true
+  },
+  "method": {
+    "core": "Unchanged naming_audit extract_calls, trajectory and aggregate functions.",
+    "canonical_selection": "Earliest scored record by checkpoint filename timestamp, then path and line.",
+    "included": "SQL physical references and explicit table/column arguments in column_search and value-search tools.",
+    "excluded": "Aliases, CTEs, derived aliases, natural language, clinical literals and table_search input.",
+    "matching": "Case-insensitive exact role-specific membership; underscores preserved; no semantic similarity.",
+    "uncertainty": "Parser failures and unresolved lineage are not promoted to confirmed references. Empty timeout transcripts are unobserved, not observed zero use."
+  },
+  "groups": [
+    {
+      "model": "8B",
+      "arm": "Full Available",
+      "scored": 16,
+      "observed_transcripts": 16,
+      "empty_timeout_trajectories": 0,
+      "success": 11,
+      "tool_calls": 111,
+      "sql_calls": 57,
+      "parse_failure_calls": 1,
+      "unresolved_calls": 8,
+      "primary_table_denominator": 166,
+      "primary_column_denominator": 544,
+      "original_only": {
+        "table": 0,
+        "column": 0,
+        "total": 0,
+        "affected_calls": 0,
+        "affected_trajectories": 0
+      },
+      "star_only": {
+        "table": 158,
+        "column": 528,
+        "total": 686,
+        "affected_calls": 95,
+        "affected_trajectories": 16
+      }
+    },
+    {
+      "model": "8B",
+      "arm": "SQL Available",
+      "scored": 16,
+      "observed_transcripts": 16,
+      "empty_timeout_trajectories": 0,
+      "success": 2,
+      "tool_calls": 294,
+      "sql_calls": 294,
+      "parse_failure_calls": 0,
+      "unresolved_calls": 1,
+      "primary_table_denominator": 461,
+      "primary_column_denominator": 1291,
+      "original_only": {
+        "table": 9,
+        "column": 2,
+        "total": 11,
+        "affected_calls": 10,
+        "affected_trajectories": 7
+      },
+      "star_only": {
+        "table": 354,
+        "column": 745,
+        "total": 1099,
+        "affected_calls": 256,
+        "affected_trajectories": 16
+      }
+    },
+    {
+      "model": "8B",
+      "arm": "SQL Unavailable",
+      "scored": 16,
+      "observed_transcripts": 16,
+      "empty_timeout_trajectories": 0,
+      "success": 0,
+      "tool_calls": 267,
+      "sql_calls": 267,
+      "parse_failure_calls": 0,
+      "unresolved_calls": 6,
+      "primary_table_denominator": 330,
+      "primary_column_denominator": 1040,
+      "original_only": {
+        "table": 28,
+        "column": 3,
+        "total": 31,
+        "affected_calls": 29,
+        "affected_trajectories": 10
+      },
+      "star_only": {
+        "table": 1,
+        "column": 174,
+        "total": 175,
+        "affected_calls": 113,
+        "affected_trajectories": 9
+      }
+    },
+    {
+      "model": "14B",
+      "arm": "Full Available",
+      "scored": 16,
+      "observed_transcripts": 16,
+      "empty_timeout_trajectories": 0,
+      "success": 12,
+      "tool_calls": 142,
+      "sql_calls": 54,
+      "parse_failure_calls": 0,
+      "unresolved_calls": 1,
+      "primary_table_denominator": 182,
+      "primary_column_denominator": 371,
+      "original_only": {
+        "table": 0,
+        "column": 0,
+        "total": 0,
+        "affected_calls": 0,
+        "affected_trajectories": 0
+      },
+      "star_only": {
+        "table": 162,
+        "column": 361,
+        "total": 523,
+        "affected_calls": 123,
+        "affected_trajectories": 16
+      }
+    },
+    {
+      "model": "14B",
+      "arm": "SQL Available",
+      "scored": 16,
+      "observed_transcripts": 16,
+      "empty_timeout_trajectories": 0,
+      "success": 2,
+      "tool_calls": 364,
+      "sql_calls": 364,
+      "parse_failure_calls": 0,
+      "unresolved_calls": 0,
+      "primary_table_denominator": 585,
+      "primary_column_denominator": 2438,
+      "original_only": {
+        "table": 29,
+        "column": 43,
+        "total": 72,
+        "affected_calls": 72,
+        "affected_trajectories": 8
+      },
+      "star_only": {
+        "table": 291,
+        "column": 974,
+        "total": 1265,
+        "affected_calls": 349,
+        "affected_trajectories": 16
+      }
+    },
+    {
+      "model": "14B",
+      "arm": "SQL Unavailable",
+      "scored": 16,
+      "observed_transcripts": 16,
+      "empty_timeout_trajectories": 0,
+      "success": 0,
+      "tool_calls": 437,
+      "sql_calls": 437,
+      "parse_failure_calls": 0,
+      "unresolved_calls": 0,
+      "primary_table_denominator": 698,
+      "primary_column_denominator": 1803,
+      "original_only": {
+        "table": 22,
+        "column": 47,
+        "total": 69,
+        "affected_calls": 66,
+        "affected_trajectories": 10
+      },
+      "star_only": {
+        "table": 0,
+        "column": 390,
+        "total": 390,
+        "affected_calls": 205,
+        "affected_trajectories": 9
+      }
+    },
+    {
+      "model": "32B",
+      "arm": "Full Available",
+      "scored": 16,
+      "observed_transcripts": 16,
+      "empty_timeout_trajectories": 0,
+      "success": 9,
+      "tool_calls": 123,
+      "sql_calls": 65,
+      "parse_failure_calls": 0,
+      "unresolved_calls": 3,
+      "primary_table_denominator": 177,
+      "primary_column_denominator": 521,
+      "original_only": {
+        "table": 0,
+        "column": 0,
+        "total": 0,
+        "affected_calls": 0,
+        "affected_trajectories": 0
+      },
+      "star_only": {
+        "table": 164,
+        "column": 502,
+        "total": 666,
+        "affected_calls": 108,
+        "affected_trajectories": 16
+      }
+    },
+    {
+      "model": "32B",
+      "arm": "SQL Available",
+      "scored": 16,
+      "observed_transcripts": 2,
+      "empty_timeout_trajectories": 14,
+      "success": 0,
+      "tool_calls": 41,
+      "sql_calls": 41,
+      "parse_failure_calls": 0,
+      "unresolved_calls": 0,
+      "primary_table_denominator": 79,
+      "primary_column_denominator": 258,
+      "original_only": {
+        "table": 0,
+        "column": 0,
+        "total": 0,
+        "affected_calls": 0,
+        "affected_trajectories": 0
+      },
+      "star_only": {
+        "table": 45,
+        "column": 159,
+        "total": 204,
+        "affected_calls": 37,
+        "affected_trajectories": 2
+      }
+    },
+    {
+      "model": "32B",
+      "arm": "SQL Unavailable",
+      "scored": 16,
+      "observed_transcripts": 10,
+      "empty_timeout_trajectories": 6,
+      "success": 0,
+      "tool_calls": 202,
+      "sql_calls": 202,
+      "parse_failure_calls": 0,
+      "unresolved_calls": 0,
+      "primary_table_denominator": 268,
+      "primary_column_denominator": 773,
+      "original_only": {
+        "table": 13,
+        "column": 64,
+        "total": 77,
+        "affected_calls": 41,
+        "affected_trajectories": 7
+      },
+      "star_only": {
+        "table": 3,
+        "column": 92,
+        "total": 95,
+        "affected_calls": 65,
+        "affected_trajectories": 5
+      }
+    }
+  ],
+  "totals": {
+    "scored": 144,
+    "observed_transcripts": 124,
+    "empty_timeout_trajectories": 20,
+    "success": 36,
+    "tool_calls": 1981,
+    "sql_calls": 1781,
+    "parse_failure_calls": 1,
+    "unresolved_calls": 19,
+    "primary_table_denominator": 2946,
+    "primary_column_denominator": 9039,
+    "original_only": {
+      "table": 101,
+      "column": 159,
+      "total": 260,
+      "affected_calls": 218,
+      "affected_trajectories": 42
+    },
+    "star_only": {
+      "table": 1178,
+      "column": 3925,
+      "total": 5103,
+      "affected_calls": 1351,
+      "affected_trajectories": 105
+    }
+  },
+  "supplementary_metadata": {
+    "scope": "Metadata exploration only; not added to primary physical-reference counts.",
+    "reviewed_metadata_calls": 78,
+    "parse_failure_calls": 0,
+    "original_only": {
+      "occurrences": 1,
+      "calls": 1,
+      "trajectories": 1,
+      "table_occurrences": 1,
+      "column_occurrences": 0
+    },
+    "star_only": {
+      "occurrences": 21,
+      "calls": 21,
+      "trajectories": 10,
+      "table_occurrences": 21,
+      "column_occurrences": 0
+    },
+    "shared": {
+      "occurrences": 8,
+      "calls": 8,
+      "trajectories": 5
+    },
+    "unknown": {
+      "occurrences": 7,
+      "calls": 7,
+      "trajectories": 2
+    },
+    "ambiguous_occurrences": 7,
+    "excluded_occurrences": 224
+  },
+  "schema_set_counts": {
+    "mimic_iv": {
+      "table": {
+        "original_only": 17,
+        "star_only": 18,
+        "shared": 0
+      },
+      "column": {
+        "original_only": 42,
+        "star_only": 47,
+        "shared": 7
+      }
+    },
+    "eicu": {
+      "table": {
+        "original_only": 7,
+        "star_only": 7,
+        "shared": 4
+      },
+      "column": {
+        "original_only": 55,
+        "star_only": 55,
+        "shared": 8
+      }
+    }
+  },
+  "validation": {
+    "unexpected_core_exceptions": 0,
+    "unexpected_supplementary_exceptions": 0,
+    "analyzer_tests": "68 passed in 7.47s",
+    "analyzer_files_checked": 11,
+    "analyzer_files_unchanged": true,
+    "reviewer_sha256": "8895ef6eb21870cd7e6ea069eb7e8f119461d2b62dce4539d4fb4fc74f5c83cc"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "captured_at_utc": "2026-09-15T08:32:10.831484+00:00",
+  "openrouter_usage": 167.45033973,
+  "openrouter_limit": 200,
+  "openrouter_is_free_tier": false,
+  "budget_guard_delta": 14.0,
+  "planned_slots": 288,
+  "models": [
+    "openrouter/qwen/qwen3-8b",
+    "openrouter/qwen/qwen3-14b",
+    "openrouter/qwen/qwen3-32b"
+  ],
+  "provider_routing": null
+}

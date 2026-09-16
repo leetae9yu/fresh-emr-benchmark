@@ -1,0 +1,183 @@
+{
+  "status": "complete_verified",
+  "scope": {
+    "qa_set": "IncreQA",
+    "models": [
+      "Qwen3 8B",
+      "Qwen3 14B",
+      "Qwen3 32B"
+    ],
+    "logical_tasks": 16,
+    "schemas": [
+      "Original",
+      "Star"
+    ],
+    "arms": [
+      "Full Tools Available",
+      "SQL-only Available",
+      "SQL-only Unavailable"
+    ],
+    "trials": 1,
+    "expected_slots": 288
+  },
+  "canonical_cohort": {
+    "expected_slots": 288,
+    "canonical_slots": 288,
+    "canonical_successes": 78,
+    "missing_slots": 0,
+    "unexpected_slots": 0,
+    "raw_scored_records": 313,
+    "discarded_recovery_duplicates": 25,
+    "selection_rule": "For each model, arm, schema, database and task ID, select the earliest scored record by checkpoint filename timestamp, then path and line.",
+    "task_contract_mismatches": 0
+  },
+  "root_integrity": {
+    "roots": 6,
+    "summaries_complete": 6,
+    "summary_completed_slots": 288,
+    "summary_errors": 0,
+    "summary_duplicate_task_ids": 0,
+    "source_digest": "782d35661bf29b96dadd072ee2b40d80566089702b977722a4e1793222cc9825",
+    "provider_routing": null,
+    "provider_behavior": "OpenRouter default routing; no provider or quantization pin and no bridge endpoint."
+  },
+  "roots": [
+    {
+      "model": "8B",
+      "arm": "SQL",
+      "config_hash": "532d6be7de93b320112a77693c53c97a7e233ac622604c8a89369e7854200397",
+      "completed": 64,
+      "complete": true
+    },
+    {
+      "model": "14B",
+      "arm": "SQL",
+      "config_hash": "e96fd553529200f2ab592bd6380385674eb0a7adc0219b8b6b6491df84905024",
+      "completed": 64,
+      "complete": true
+    },
+    {
+      "model": "32B",
+      "arm": "SQL",
+      "config_hash": "5047aecfce03c154fae8caf6f142f03b999724288bf21c82421606d9d1aa4be8",
+      "completed": 64,
+      "complete": true
+    },
+    {
+      "model": "8B",
+      "arm": "Full",
+      "config_hash": "5f014875854ba3f32f9c9c72c48cb7874589895982cb8a4662d07397a83e01e8",
+      "completed": 32,
+      "complete": true
+    },
+    {
+      "model": "14B",
+      "arm": "Full",
+      "config_hash": "f18065a581772a5e27f17cb3585cb96beaaa01da3cd7799b2d8fe1d708e02652",
+      "completed": 32,
+      "complete": true
+    },
+    {
+      "model": "32B",
+      "arm": "Full",
+      "config_hash": "d4a37f4703770d2855fcc28d769c852cdcf986bb114f66c3887dfb3171ff9f04",
+      "completed": 32,
+      "complete": true
+    }
+  ],
+  "attempts": {
+    "raw_attempts": 435,
+    "canonical_scored": 288,
+    "canonical_success": 78,
+    "canonical_failure": 210,
+    "reward_null_user_error": 122,
+    "reward_null_other": 0,
+    "agent_timeout_events": 33,
+    "agent_timeout_by_model_arm": {
+      "14B SQL Available": 1,
+      "32B SQL Available": 18,
+      "32B SQL Unavailable": 14
+    },
+    "timeout_rows_match_empty_message_rows": true,
+    "canonical_non_timeout_native_tool_parser_loss": 0
+  },
+  "recoveries": [
+    {
+      "model": "8B",
+      "arm": "Full",
+      "reason": "eICU SQLite execution remained in sqlite3_step beyond the configured timeout.",
+      "preserved_before_resume": 25,
+      "resume_mode": "identical config and result root with --resume",
+      "discarded_duplicate_scored_records": 1,
+      "final_canonical": 32
+    },
+    {
+      "model": "14B",
+      "arm": "Full",
+      "reason": "eICU SQLite execution remained in sqlite3_step beyond the configured timeout.",
+      "preserved_before_resume": 24,
+      "resume_mode": "identical config and result root with --resume",
+      "discarded_duplicate_scored_records": 24,
+      "final_canonical": 32
+    }
+  ],
+  "billing": {
+    "openrouter_baseline_usage": 167.45033973,
+    "openrouter_final_usage": 175.226700199,
+    "openrouter_actual_delta_usd": 7.776360469,
+    "openrouter_guard_usd": 14.0,
+    "guard_headroom_usd": 6.223639531,
+    "final_usage_stability": "The same final usage was observed at 2026-09-15T12:08:14.595620Z and 2026-09-15T12:11:43.179969Z.",
+    "canonical_saved_cost_usd": 7.74467862,
+    "all_saved_attempt_estimated_cost_usd": 10.85886083,
+    "authoritative_cost_source": "OpenRouter key usage delta"
+  },
+  "naming_validation": {
+    "canonical_star_trajectories": 144,
+    "observed_star_transcripts": 124,
+    "empty_timeout_star_trajectories": 20,
+    "primary_analyzer_tests": "68 passed in 7.47s",
+    "analyzer_files_checked": 11,
+    "analyzer_files_unchanged": true,
+    "unexpected_core_exceptions": 0,
+    "unexpected_supplementary_exceptions": 0,
+    "network_calls": 0,
+    "generated_sql_executions": 0
+  },
+  "faiss": [
+    {
+      "env": "mimic_iv",
+      "index_sha256": "0b028d114c7b51b862f4e5eea65d5bfd9ea5aae7e7cbccaa08d7a19ccff5b3ee",
+      "matches_previous_verified_cache": true
+    },
+    {
+      "env": "mimic_iv_star",
+      "index_sha256": "6b2b7338317884a4c0719db81e1c5c39e2e76f72ef996e3d97af481bb6036585",
+      "matches_previous_verified_cache": true
+    },
+    {
+      "env": "eicu",
+      "index_sha256": "2da09a6c019969b836c4b24a4708d7cf87708ca0aaa8c6469c3c9c7fe0efe41f",
+      "matches_previous_verified_cache": true
+    },
+    {
+      "env": "eicu_star",
+      "index_sha256": "f4db506aed3662601a006b0043a2600325fcab9beff2b0f312f3847d7d70c522",
+      "matches_previous_verified_cache": true
+    }
+  ],
+  "runtime": {
+    "started_at_utc": "2026-09-15T08:33:06Z",
+    "finished_before_utc": "2026-09-15T12:08:14.595620Z",
+    "elapsed_minutes_approx": 215.15
+  },
+  "final_state": {
+    "active_qwen_experiment_processes": 0,
+    "active_qwen_monitors": 0,
+    "all_summaries_complete": true
+  },
+  "validation_limits": {
+    "json_lsp": "Biome is not installed, so JSON validation uses strict parser checks instead of LSP diagnostics.",
+    "statistics": "Fixed 16-task k=1 descriptive pilot; no p-values or population-level inference."
+  }
+}

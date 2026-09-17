@@ -295,6 +295,8 @@ provider/quantization을 고정하지 않고 OpenRouter 기본 라우팅을 사�
 Unavailable 14). 전부 빈 응답으로 끝나 score 0이다. 32B의 SQL 성능과
 아래 naming 관찰 범위를 해석할 때 함께 봐야 한다.
 
+![Qwen3 dense 모델 크기별 SR-1 추이](figs/qwen3dense-size-trend.png)
+
 ### [Original names in Star]
 
 #### Full Tools

@@ -55,6 +55,8 @@ Original에만 존재하는 테이블·컬럼의 SQL 내 물리 참조와 검색
 
 → Original→Star 방향이 모델마다 다르다: 3B는 Full에서 소폭 하락, 8B·14B는 Star가 더 높다.
 
+![Ministral 모델 크기별 SR-1 추이](figs/ministral-size-trend.png)
+
 ### [Original names in Star]
 
 #### Full Tools
@@ -139,6 +141,8 @@ Star에서는 20B가 2건 높고 120B는 동률이다. 도구 효과가 크지 �
 
 → SQL-only Nonavailable은 Star에서 0/160, Original에서 6/160이다.
 
+![GPT-OSS 모델 크기별 SR-1 추이](figs/gptoss-size-trend.png)
+
 ### [Original names in Star]
 
 #### Full Tools
@@ -216,6 +220,8 @@ Available에서 Original 이름 사용 대화가 20B(27.50%)보다 낮다(12.50%
 → SQL-only Nonavailable의 성공 5건은 전부 Original에서 나왔고, Star Nonavailable은 0/48이다.
 
 → 크기에 따른 단조 증가는 없다(Full 총성공 26 → 26 → 28, SQL Available 23 → 29 → 25).
+
+![Qwen3.5 MoE 모델 크기별 SR-1 추이](figs/qwen35moe-size-trend.png)
 
 ### [Original names in Star]
 

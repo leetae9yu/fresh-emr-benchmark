@@ -1,0 +1,40 @@
+{
+  "model_id": "openai-community/gpt2-xl",
+  "model_revision": "15ea56dee5df4983c59b2538573817e1667135e2",
+  "webtext_cutoff": "end of 2017",
+  "dataset_sha256": "00e216c96ca4142b7bdc30a5114a2b340df9d8a0a4f72060b128658aac221125",
+  "raw_artifact": "../gpt2_remote_stdout.txt",
+  "raw_artifact_sha256": "e5f214618586ef36245ce64754ca83032acd1eb4223258340260107de0a1d97d",
+  "rows": 655,
+  "all_finite": true,
+  "original_identifier": {
+    "top5_rate": 0.0,
+    "mean_rank": 20.4,
+    "original_minus_star_mean_logprob": {
+      "all": -1.7054287513854012,
+      "mimic_iv": -0.780432236081078,
+      "eicu": -2.6304252666897243
+    }
+  },
+  "fingerprint_similarity": {
+    "olmo": {
+      "js_similarity": 0.888175651370718,
+      "rank_spearman": 0.6168258953899529,
+      "top5_overlap": 0.6266666666666667,
+      "original_star_margin_spearman": 0.5208008898776418
+    },
+    "pythia": {
+      "js_similarity": 0.9723495655247718,
+      "rank_spearman": 0.814382796224851,
+      "top5_overlap": 0.6733333333333333,
+      "original_star_margin_spearman": 0.9216907675194661
+    },
+    "qwen": {
+      "js_similarity": 0.9048168749413745,
+      "rank_spearman": 0.6682443970051951,
+      "top5_overlap": 0.64,
+      "original_star_margin_spearman": 0.6992213570634038
+    }
+  },
+  "interpretation": "The dictionary-distribution fingerprint is strongly shared by a model whose training cutoff predates MIMIC-IV, so this fingerprint is not specific evidence of MIMIC-IV exposure."
+}

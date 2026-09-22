@@ -1,0 +1,59 @@
+{
+  "model_id": "openai-community/gpt2-xl",
+  "model_revision": "15ea56dee5df4983c59b2538573817e1667135e2",
+  "webtext_cutoff": "end of 2017",
+  "dataset_sha256": "2ea5e7c4a95bbc02189c91d63b4b1d23cb66af0c40c054ac4b2b30008e148fc4",
+  "raw_artifact": "../gpt2_remote_stdout.txt",
+  "raw_artifact_sha256": "e5f214618586ef36245ce64754ca83032acd1eb4223258340260107de0a1d97d",
+  "rows": 255,
+  "all_finite": true,
+  "strata": {
+    "iii_only": {
+      "items": 11,
+      "mean_logprob_margin": 1.6526495546489566,
+      "target_preference_rate": 0.36363636363636365,
+      "mean_rank": 2.5454545454545454
+    },
+    "iv_only": {
+      "items": 14,
+      "mean_logprob_margin": -0.15190769085267758,
+      "target_preference_rate": 0.14285714285714285,
+      "mean_rank": 2.9285714285714284
+    },
+    "shared": {
+      "items": 10,
+      "mean_logprob_margin": 0.5129401775201161,
+      "target_preference_rate": 0.0,
+      "mean_rank": 3.0
+    },
+    "eicu": {
+      "items": 8,
+      "mean_logprob_margin": 0.35657848666111625,
+      "target_preference_rate": 0.0,
+      "mean_rank": 2.875
+    },
+    "generic_sql": {
+      "items": 8,
+      "mean_logprob_margin": 1.4805391430854797,
+      "target_preference_rate": 0.75,
+      "mean_rank": 1.625
+    }
+  },
+  "iii_minus_iv_margin": 1.804557245501634,
+  "restricted_sensitivity": {
+    "excluded_item_ids": [
+      "iii_only.00.mimiciii_clinical",
+      "iv_only.11.mimiciv_icu",
+      "iv_only.12.mimiciv_hosp",
+      "iii_only.09.icustay_id",
+      "iv_only.23.stay_id",
+      "iv_only.17.edstay"
+    ],
+    "iii_items": 9,
+    "iv_items": 10,
+    "iii_mean_logprob_margin": 1.9491057638138058,
+    "iv_mean_logprob_margin": -0.4406257469313484,
+    "iii_minus_iv_margin": 2.3897315107451544
+  },
+  "interpretation": "GPT-2 XL shows a substantial III-over-IV identifier preference under a training cutoff that predates MIMIC-IV. This is consistent with possible MIMIC-III-era exposure plus generic naming priors, but does not prove MIMIC-III membership in WebText."
+}

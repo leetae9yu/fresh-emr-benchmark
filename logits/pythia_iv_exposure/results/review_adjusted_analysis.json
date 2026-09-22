@@ -1,0 +1,26 @@
+{
+  "inference_status": "descriptive_only",
+  "reason": "One run per arm and shared prompt/candidate clusters invalidate item-independent bootstrap and label-permutation calibration.",
+  "full_matrix": {
+    "mean_logprob_did": 5.761678334180411,
+    "sum_logprob_did": 21.250153860488496
+  },
+  "restricted_sensitivity": {
+    "excluded_item_ids": [
+      "iii_only.00.mimiciii_clinical",
+      "iv_only.11.mimiciv_icu",
+      "iv_only.12.mimiciv_hosp",
+      "iii_only.09.icustay_id",
+      "iv_only.23.stay_id",
+      "iv_only.17.edstay"
+    ],
+    "iii_items": 9,
+    "iv_items": 10,
+    "mean_logprob_did": 4.989306212177983,
+    "sum_logprob_did": 15.945172135035197
+  },
+  "withdrawn_fields": [
+    "bootstrap_ci95",
+    "label_permutation_p"
+  ]
+}

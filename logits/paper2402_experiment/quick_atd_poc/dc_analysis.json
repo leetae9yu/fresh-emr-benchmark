@@ -1,0 +1,738 @@
+{
+  "summary": {
+    "mimic_iv_original": {
+      "exact": 1,
+      "total": 24,
+      "tables": 16
+    },
+    "mimic_iv_star": {
+      "exact": 0,
+      "total": 24,
+      "tables": 16
+    },
+    "eicu_original": {
+      "exact": 1,
+      "total": 15,
+      "tables": 11
+    },
+    "eicu_star": {
+      "exact": 1,
+      "total": 15,
+      "tables": 11
+    },
+    "all_original": {
+      "exact": 2,
+      "total": 39,
+      "tables": 27
+    },
+    "all_star": {
+      "exact": 1,
+      "total": 39,
+      "tables": 27
+    }
+  },
+  "rows": [
+    {
+      "job_id": "dc:mimic_iv:original:diagnoses_icd:2|gen",
+      "database": "mimic_iv",
+      "variant": "original",
+      "cluster_id": "dc:mimic_iv:diagnoses_icd/admissiondiagnoses",
+      "answer": "hadm_id",
+      "prediction": "subject_id",
+      "exact": false
+    },
+    {
+      "job_id": "dc:mimic_iv:star:diagnoses_icd:2|gen",
+      "database": "mimic_iv",
+      "variant": "star",
+      "cluster_id": "dc:mimic_iv:diagnoses_icd/admissiondiagnoses",
+      "answer": "admissionid",
+      "prediction": "patientid",
+      "exact": false
+    },
+    {
+      "job_id": "dc:mimic_iv:original:procedures_icd:0|gen",
+      "database": "mimic_iv",
+      "variant": "original",
+      "cluster_id": "dc:mimic_iv:procedures_icd/admissionprocedures",
+      "answer": "row_id",
+      "prediction": "subject_id",
+      "exact": false
+    },
+    {
+      "job_id": "dc:mimic_iv:star:procedures_icd:0|gen",
+      "database": "mimic_iv",
+      "variant": "star",
+      "cluster_id": "dc:mimic_iv:procedures_icd/admissionprocedures",
+      "answer": "recordid",
+      "prediction": "patientid",
+      "exact": false
+    },
+    {
+      "job_id": "dc:mimic_iv:original:chartevents:3|gen",
+      "database": "mimic_iv",
+      "variant": "original",
+      "cluster_id": "dc:mimic_iv:chartevents/clinicalevents",
+      "answer": "stay_id",
+      "prediction": "hadm_id",
+      "exact": false
+    },
+    {
+      "job_id": "dc:mimic_iv:star:chartevents:3|gen",
+      "database": "mimic_iv",
+      "variant": "star",
+      "cluster_id": "dc:mimic_iv:chartevents/clinicalevents",
+      "answer": "icuadmissionid",
+      "prediction": "icuepisodes",
+      "exact": false
+    },
+    {
+      "job_id": "dc:mimic_iv:original:chartevents:5|gen",
+      "database": "mimic_iv",
+      "variant": "original",
+      "cluster_id": "dc:mimic_iv:chartevents/clinicalevents",
+      "answer": "charttime",
+      "prediction": "valuenum",
+      "exact": false
+    },
+    {
+      "job_id": "dc:mimic_iv:star:chartevents:5|gen",
+      "database": "mimic_iv",
+      "variant": "star",
+      "cluster_id": "dc:mimic_iv:chartevents/clinicalevents",
+      "answer": "recordeddatetime",
+      "prediction": "admissionid",
+      "exact": false
+    },
+    {
+      "job_id": "dc:mimic_iv:original:d_items:2|gen",
+      "database": "mimic_iv",
+      "variant": "original",
+      "cluster_id": "dc:mimic_iv:d_items/clinicalitemtypes",
+      "answer": "label",
+      "prediction": "linksto",
+      "exact": false
+    },
+    {
+      "job_id": "dc:mimic_iv:star:d_items:2|gen",
+      "database": "mimic_iv",
+      "variant": "star",
+      "cluster_id": "dc:mimic_iv:d_items/clinicalitemtypes",
+      "answer": "itemname",
+      "prediction": "itemcode",
+      "exact": false
+    },
+    {
+      "job_id": "dc:mimic_iv:original:patients:0|gen",
+      "database": "mimic_iv",
+      "variant": "original",
+      "cluster_id": "dc:mimic_iv:patients/demographics",
+      "answer": "row_id",
+      "prediction": "subject_id",
+      "exact": false
+    },
+    {
+      "job_id": "dc:mimic_iv:star:patients:0|gen",
+      "database": "mimic_iv",
+      "variant": "star",
+      "cluster_id": "dc:mimic_iv:patients/demographics",
+      "answer": "recordid",
+      "prediction": "dateofdeath",
+      "exact": false
+    },
+    {
+      "job_id": "dc:mimic_iv:original:d_icd_diagnoses:1|gen",
+      "database": "mimic_iv",
+      "variant": "original",
+      "cluster_id": "dc:mimic_iv:d_icd_diagnoses/diagnosiscodes",
+      "answer": "icd_code",
+      "prediction": "icd_code",
+      "exact": true
+    },
+    {
+      "job_id": "dc:mimic_iv:star:d_icd_diagnoses:1|gen",
+      "database": "mimic_iv",
+      "variant": "star",
+      "cluster_id": "dc:mimic_iv:d_icd_diagnoses/diagnosiscodes",
+      "answer": "icdcode",
+      "prediction": "codeversion",
+      "exact": false
+    },
+    {
+      "job_id": "dc:mimic_iv:original:admissions:0|gen",
+      "database": "mimic_iv",
+      "variant": "original",
+      "cluster_id": "dc:mimic_iv:admissions/hospitaladmissions",
+      "answer": "row_id",
+      "prediction": "admittime",
+      "exact": false
+    },
+    {
+      "job_id": "dc:mimic_iv:star:admissions:0|gen",
+      "database": "mimic_iv",
+      "variant": "star",
+      "cluster_id": "dc:mimic_iv:admissions/hospitaladmissions",
+      "answer": "recordid",
+      "prediction": "admitdatetime",
+      "exact": false
+    },
+    {
+      "job_id": "dc:mimic_iv:original:admissions:9|gen",
+      "database": "mimic_iv",
+      "variant": "original",
+      "cluster_id": "dc:mimic_iv:admissions/hospitaladmissions",
+      "answer": "language",
+      "prediction": "insurance",
+      "exact": false
+    },
+    {
+      "job_id": "dc:mimic_iv:star:admissions:9|gen",
+      "database": "mimic_iv",
+      "variant": "star",
+      "cluster_id": "dc:mimic_iv:admissions/hospitaladmissions",
+      "answer": "language",
+      "prediction": "dischargedatetime",
+      "exact": false
+    },
+    {
+      "job_id": "dc:mimic_iv:original:admissions:11|gen",
+      "database": "mimic_iv",
+      "variant": "original",
+      "cluster_id": "dc:mimic_iv:admissions/hospitaladmissions",
+      "answer": "age",
+      "prediction": "admission_type",
+      "exact": false
+    },
+    {
+      "job_id": "dc:mimic_iv:star:admissions:11|gen",
+      "database": "mimic_iv",
+      "variant": "star",
+      "cluster_id": "dc:mimic_iv:admissions/hospitaladmissions",
+      "answer": "age",
+      "prediction": "insurancetype",
+      "exact": false
+    },
+    {
+      "job_id": "dc:mimic_iv:original:icustays:5|gen",
+      "database": "mimic_iv",
+      "variant": "original",
+      "cluster_id": "dc:mimic_iv:icustays/icuepisodes",
+      "answer": "last_careunit",
+      "prediction": "intime",
+      "exact": false
+    },
+    {
+      "job_id": "dc:mimic_iv:star:icustays:5|gen",
+      "database": "mimic_iv",
+      "variant": "star",
+      "cluster_id": "dc:mimic_iv:icustays/icuepisodes",
+      "answer": "finalcareunit",
+      "prediction": "dischargedatetime",
+      "exact": false
+    },
+    {
+      "job_id": "dc:mimic_iv:original:icustays:7|gen",
+      "database": "mimic_iv",
+      "variant": "original",
+      "cluster_id": "dc:mimic_iv:icustays/icuepisodes",
+      "answer": "outtime",
+      "prediction": "intime",
+      "exact": false
+    },
+    {
+      "job_id": "dc:mimic_iv:star:icustays:7|gen",
+      "database": "mimic_iv",
+      "variant": "star",
+      "cluster_id": "dc:mimic_iv:icustays/icuepisodes",
+      "answer": "dischargedatetime",
+      "prediction": "admitdatetime",
+      "exact": false
+    },
+    {
+      "job_id": "dc:mimic_iv:original:inputevents:4|gen",
+      "database": "mimic_iv",
+      "variant": "original",
+      "cluster_id": "dc:mimic_iv:inputevents/intakerecords",
+      "answer": "starttime",
+      "prediction": "stay_id",
+      "exact": false
+    },
+    {
+      "job_id": "dc:mimic_iv:star:inputevents:4|gen",
+      "database": "mimic_iv",
+      "variant": "star",
+      "cluster_id": "dc:mimic_iv:inputevents/intakerecords",
+      "answer": "startdatetime",
+      "prediction": "admissionid",
+      "exact": false
+    },
+    {
+      "job_id": "dc:mimic_iv:original:inputevents:7|gen",
+      "database": "mimic_iv",
+      "variant": "original",
+      "cluster_id": "dc:mimic_iv:inputevents/intakerecords",
+      "answer": "totalamountuom",
+      "prediction": "totalamount",
+      "exact": false
+    },
+    {
+      "job_id": "dc:mimic_iv:star:inputevents:7|gen",
+      "database": "mimic_iv",
+      "variant": "star",
+      "cluster_id": "dc:mimic_iv:inputevents/intakerecords",
+      "answer": "volumeunit",
+      "prediction": "patientid",
+      "exact": false
+    },
+    {
+      "job_id": "dc:mimic_iv:original:labevents:3|gen",
+      "database": "mimic_iv",
+      "variant": "original",
+      "cluster_id": "dc:mimic_iv:labevents/labresults",
+      "answer": "itemid",
+      "prediction": "d_labitems",
+      "exact": false
+    },
+    {
+      "job_id": "dc:mimic_iv:star:labevents:3|gen",
+      "database": "mimic_iv",
+      "variant": "star",
+      "cluster_id": "dc:mimic_iv:labevents/labresults",
+      "answer": "itemcode",
+      "prediction": "labtesttypes",
+      "exact": false
+    },
+    {
+      "job_id": "dc:mimic_iv:original:d_labitems:0|gen",
+      "database": "mimic_iv",
+      "variant": "original",
+      "cluster_id": "dc:mimic_iv:d_labitems/labtesttypes",
+      "answer": "row_id",
+      "prediction": "itemid",
+      "exact": false
+    },
+    {
+      "job_id": "dc:mimic_iv:star:d_labitems:0|gen",
+      "database": "mimic_iv",
+      "variant": "star",
+      "cluster_id": "dc:mimic_iv:d_labitems/labtesttypes",
+      "answer": "recordid",
+      "prediction": "itemcode",
+      "exact": false
+    },
+    {
+      "job_id": "dc:mimic_iv:original:prescriptions:2|gen",
+      "database": "mimic_iv",
+      "variant": "original",
+      "cluster_id": "dc:mimic_iv:prescriptions/medicationorders",
+      "answer": "hadm_id",
+      "prediction": "admissions",
+      "exact": false
+    },
+    {
+      "job_id": "dc:mimic_iv:star:prescriptions:2|gen",
+      "database": "mimic_iv",
+      "variant": "star",
+      "cluster_id": "dc:mimic_iv:prescriptions/medicationorders",
+      "answer": "admissionid",
+      "prediction": "patientid",
+      "exact": false
+    },
+    {
+      "job_id": "dc:mimic_iv:original:prescriptions:3|gen",
+      "database": "mimic_iv",
+      "variant": "original",
+      "cluster_id": "dc:mimic_iv:prescriptions/medicationorders",
+      "answer": "starttime",
+      "prediction": "subject_id",
+      "exact": false
+    },
+    {
+      "job_id": "dc:mimic_iv:star:prescriptions:3|gen",
+      "database": "mimic_iv",
+      "variant": "star",
+      "cluster_id": "dc:mimic_iv:prescriptions/medicationorders",
+      "answer": "startdatetime",
+      "prediction": "patientid",
+      "exact": false
+    },
+    {
+      "job_id": "dc:mimic_iv:original:microbiologyevents:1|gen",
+      "database": "mimic_iv",
+      "variant": "original",
+      "cluster_id": "dc:mimic_iv:microbiologyevents/microbiologyresults",
+      "answer": "subject_id",
+      "prediction": "org_name",
+      "exact": false
+    },
+    {
+      "job_id": "dc:mimic_iv:star:microbiologyevents:1|gen",
+      "database": "mimic_iv",
+      "variant": "star",
+      "cluster_id": "dc:mimic_iv:microbiologyevents/microbiologyresults",
+      "answer": "patientid",
+      "prediction": "recordid",
+      "exact": false
+    },
+    {
+      "job_id": "dc:mimic_iv:original:outputevents:0|gen",
+      "database": "mimic_iv",
+      "variant": "original",
+      "cluster_id": "dc:mimic_iv:outputevents/outputrecords",
+      "answer": "row_id",
+      "prediction": "itemid",
+      "exact": false
+    },
+    {
+      "job_id": "dc:mimic_iv:star:outputevents:0|gen",
+      "database": "mimic_iv",
+      "variant": "star",
+      "cluster_id": "dc:mimic_iv:outputevents/outputrecords",
+      "answer": "recordid",
+      "prediction": "patientid",
+      "exact": false
+    },
+    {
+      "job_id": "dc:mimic_iv:original:outputevents:6|gen",
+      "database": "mimic_iv",
+      "variant": "original",
+      "cluster_id": "dc:mimic_iv:outputevents/outputrecords",
+      "answer": "value",
+      "prediction": "itemid",
+      "exact": false
+    },
+    {
+      "job_id": "dc:mimic_iv:star:outputevents:6|gen",
+      "database": "mimic_iv",
+      "variant": "star",
+      "cluster_id": "dc:mimic_iv:outputevents/outputrecords",
+      "answer": "volume",
+      "prediction": "volumeunit",
+      "exact": false
+    },
+    {
+      "job_id": "dc:mimic_iv:original:transfers:1|gen",
+      "database": "mimic_iv",
+      "variant": "original",
+      "cluster_id": "dc:mimic_iv:transfers/patienttransfers",
+      "answer": "subject_id",
+      "prediction": "intime",
+      "exact": false
+    },
+    {
+      "job_id": "dc:mimic_iv:star:transfers:1|gen",
+      "database": "mimic_iv",
+      "variant": "star",
+      "cluster_id": "dc:mimic_iv:transfers/patienttransfers",
+      "answer": "patientid",
+      "prediction": "admissionid",
+      "exact": false
+    },
+    {
+      "job_id": "dc:mimic_iv:original:transfers:6|gen",
+      "database": "mimic_iv",
+      "variant": "original",
+      "cluster_id": "dc:mimic_iv:transfers/patienttransfers",
+      "answer": "intime",
+      "prediction": "careunit",
+      "exact": false
+    },
+    {
+      "job_id": "dc:mimic_iv:star:transfers:6|gen",
+      "database": "mimic_iv",
+      "variant": "star",
+      "cluster_id": "dc:mimic_iv:transfers/patienttransfers",
+      "answer": "transferindatetime",
+      "prediction": "transferoutreason",
+      "exact": false
+    },
+    {
+      "job_id": "dc:mimic_iv:original:d_icd_procedures:2|gen",
+      "database": "mimic_iv",
+      "variant": "original",
+      "cluster_id": "dc:mimic_iv:d_icd_procedures/procedurecodes",
+      "answer": "icd_version",
+      "prediction": "long_title",
+      "exact": false
+    },
+    {
+      "job_id": "dc:mimic_iv:star:d_icd_procedures:2|gen",
+      "database": "mimic_iv",
+      "variant": "star",
+      "cluster_id": "dc:mimic_iv:d_icd_procedures/procedurecodes",
+      "answer": "codeversion",
+      "prediction": "description",
+      "exact": false
+    },
+    {
+      "job_id": "dc:eicu:original:allergy:4|gen",
+      "database": "eicu",
+      "variant": "original",
+      "cluster_id": "dc:eicu:allergy/allergy_reaction",
+      "answer": "allergytime",
+      "prediction": "drugname",
+      "exact": false
+    },
+    {
+      "job_id": "dc:eicu:star:allergy:4|gen",
+      "database": "eicu",
+      "variant": "star",
+      "cluster_id": "dc:eicu:allergy/allergy_reaction",
+      "answer": "allergy_time",
+      "prediction": "unit_id",
+      "exact": false
+    },
+    {
+      "job_id": "dc:eicu:original:diagnosis:0|gen",
+      "database": "eicu",
+      "variant": "original",
+      "cluster_id": "dc:eicu:diagnosis/condition",
+      "answer": "diagnosisid",
+      "prediction": "patientunitstayid",
+      "exact": false
+    },
+    {
+      "job_id": "dc:eicu:star:diagnosis:0|gen",
+      "database": "eicu",
+      "variant": "star",
+      "cluster_id": "dc:eicu:diagnosis/condition",
+      "answer": "condition_id",
+      "prediction": "unit_id",
+      "exact": false
+    },
+    {
+      "job_id": "dc:eicu:original:cost:1|gen",
+      "database": "eicu",
+      "variant": "original",
+      "cluster_id": "dc:eicu:cost/cost",
+      "answer": "patienthealthsystemstayid",
+      "prediction": "patientunitstayid",
+      "exact": false
+    },
+    {
+      "job_id": "dc:eicu:star:cost:1|gen",
+      "database": "eicu",
+      "variant": "star",
+      "cluster_id": "dc:eicu:cost/cost",
+      "answer": "hosp_id",
+      "prediction": "unit_id",
+      "exact": false
+    },
+    {
+      "job_id": "dc:eicu:original:intakeoutput:3|gen",
+      "database": "eicu",
+      "variant": "original",
+      "cluster_id": "dc:eicu:intakeoutput/fluid_balance",
+      "answer": "celllabel",
+      "prediction": "cellvaluenumeric",
+      "exact": false
+    },
+    {
+      "job_id": "dc:eicu:star:intakeoutput:3|gen",
+      "database": "eicu",
+      "variant": "star",
+      "cluster_id": "dc:eicu:intakeoutput/fluid_balance",
+      "answer": "fluid_label",
+      "prediction": "unit_name",
+      "exact": false
+    },
+    {
+      "job_id": "dc:eicu:original:hospital:2|gen",
+      "database": "eicu",
+      "variant": "original",
+      "cluster_id": "dc:eicu:hospital/hospital",
+      "answer": "teachingstatus",
+      "prediction": "specialization",
+      "exact": false
+    },
+    {
+      "job_id": "dc:eicu:star:hospital:2|gen",
+      "database": "eicu",
+      "variant": "star",
+      "cluster_id": "dc:eicu:hospital/hospital",
+      "answer": "teaching_status",
+      "prediction": "region",
+      "exact": false
+    },
+    {
+      "job_id": "dc:eicu:original:patient:3|gen",
+      "database": "eicu",
+      "variant": "original",
+      "cluster_id": "dc:eicu:patient/icupatient",
+      "answer": "gender",
+      "prediction": "gender",
+      "exact": true
+    },
+    {
+      "job_id": "dc:eicu:star:patient:3|gen",
+      "database": "eicu",
+      "variant": "star",
+      "cluster_id": "dc:eicu:patient/icupatient",
+      "answer": "gender",
+      "prediction": "ethnicity",
+      "exact": false
+    },
+    {
+      "job_id": "dc:eicu:original:patient:6|gen",
+      "database": "eicu",
+      "variant": "original",
+      "cluster_id": "dc:eicu:patient/icupatient",
+      "answer": "hospitalid",
+      "prediction": "dischargeweight",
+      "exact": false
+    },
+    {
+      "job_id": "dc:eicu:star:patient:6|gen",
+      "database": "eicu",
+      "variant": "star",
+      "cluster_id": "dc:eicu:patient/icupatient",
+      "answer": "hospital_id",
+      "prediction": "hosp_id",
+      "exact": false
+    },
+    {
+      "job_id": "dc:eicu:original:patient:8|gen",
+      "database": "eicu",
+      "variant": "original",
+      "cluster_id": "dc:eicu:patient/icupatient",
+      "answer": "admissionheight",
+      "prediction": "dischargeweight",
+      "exact": false
+    },
+    {
+      "job_id": "dc:eicu:star:patient:8|gen",
+      "database": "eicu",
+      "variant": "star",
+      "cluster_id": "dc:eicu:patient/icupatient",
+      "answer": "height_admission",
+      "prediction": "weight_admission",
+      "exact": false
+    },
+    {
+      "job_id": "dc:eicu:original:patient:16|gen",
+      "database": "eicu",
+      "variant": "original",
+      "cluster_id": "dc:eicu:patient/icupatient",
+      "answer": "hospitaldischargestatus",
+      "prediction": "dischargeweight",
+      "exact": false
+    },
+    {
+      "job_id": "dc:eicu:star:patient:16|gen",
+      "database": "eicu",
+      "variant": "star",
+      "cluster_id": "dc:eicu:patient/icupatient",
+      "answer": "hospital_discharge_status",
+      "prediction": "unit_discharge_time",
+      "exact": false
+    },
+    {
+      "job_id": "dc:eicu:original:lab:2|gen",
+      "database": "eicu",
+      "variant": "original",
+      "cluster_id": "dc:eicu:lab/lab",
+      "answer": "labname",
+      "prediction": "patientunitstayid",
+      "exact": false
+    },
+    {
+      "job_id": "dc:eicu:star:lab:2|gen",
+      "database": "eicu",
+      "variant": "star",
+      "cluster_id": "dc:eicu:lab/lab",
+      "answer": "lab_name",
+      "prediction": "unit_id",
+      "exact": false
+    },
+    {
+      "job_id": "dc:eicu:original:microlab:2|gen",
+      "database": "eicu",
+      "variant": "original",
+      "cluster_id": "dc:eicu:microlab/microbiology",
+      "answer": "culturesite",
+      "prediction": "patientunitstayid",
+      "exact": false
+    },
+    {
+      "job_id": "dc:eicu:star:microlab:2|gen",
+      "database": "eicu",
+      "variant": "star",
+      "cluster_id": "dc:eicu:microlab/microbiology",
+      "answer": "culture_site",
+      "prediction": "culture_taken_time",
+      "exact": false
+    },
+    {
+      "job_id": "dc:eicu:original:medication:2|gen",
+      "database": "eicu",
+      "variant": "original",
+      "cluster_id": "dc:eicu:medication/prescription",
+      "answer": "drugname",
+      "prediction": "drugstarttime",
+      "exact": false
+    },
+    {
+      "job_id": "dc:eicu:star:medication:2|gen",
+      "database": "eicu",
+      "variant": "star",
+      "cluster_id": "dc:eicu:medication/prescription",
+      "answer": "drug_name",
+      "prediction": "unit_id",
+      "exact": false
+    },
+    {
+      "job_id": "dc:eicu:original:treatment:1|gen",
+      "database": "eicu",
+      "variant": "original",
+      "cluster_id": "dc:eicu:treatment/treatment",
+      "answer": "patientunitstayid",
+      "prediction": "patientid",
+      "exact": false
+    },
+    {
+      "job_id": "dc:eicu:star:treatment:1|gen",
+      "database": "eicu",
+      "variant": "star",
+      "cluster_id": "dc:eicu:treatment/treatment",
+      "answer": "unit_id",
+      "prediction": "treatment_id",
+      "exact": false
+    },
+    {
+      "job_id": "dc:eicu:original:vitalperiodic:1|gen",
+      "database": "eicu",
+      "variant": "original",
+      "cluster_id": "dc:eicu:vitalperiodic/vital_signs",
+      "answer": "patientunitstayid",
+      "prediction": "patientid",
+      "exact": false
+    },
+    {
+      "job_id": "dc:eicu:star:vitalperiodic:1|gen",
+      "database": "eicu",
+      "variant": "star",
+      "cluster_id": "dc:eicu:vitalperiodic/vital_signs",
+      "answer": "unit_id",
+      "prediction": "temperature",
+      "exact": false
+    },
+    {
+      "job_id": "dc:eicu:original:vitalperiodic:2|gen",
+      "database": "eicu",
+      "variant": "original",
+      "cluster_id": "dc:eicu:vitalperiodic/vital_signs",
+      "answer": "temperature",
+      "prediction": "systemicmean",
+      "exact": false
+    },
+    {
+      "job_id": "dc:eicu:star:vitalperiodic:2|gen",
+      "database": "eicu",
+      "variant": "star",
+      "cluster_id": "dc:eicu:vitalperiodic/vital_signs",
+      "answer": "temperature",
+      "prediction": "temperature",
+      "exact": true
+    }
+  ]
+}

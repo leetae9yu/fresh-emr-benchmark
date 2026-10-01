@@ -1,0 +1,473 @@
+{
+  "source_sha256": "37e61d7217ee9482c98242f842158e7c86950c317bca296c92e8cb2f550f92ef",
+  "jobs": [
+    {
+      "job_id": "dc:mimic_iv:original:diagnoses_icd:2|gen",
+      "system": "Answer with the exact hidden column name only.",
+      "prompt": "CREATE TABLE \"diagnoses_icd\" (\n    \"row_id\" INT NOT NULL PRIMARY KEY,\n    \"subject_id\" INT NOT NULL,\n    [MASK_3] INT NOT NULL,\n    \"icd_code\" TEXT NOT NULL,\n    \"icd_version\" INT NOT NULL,\n    \"charttime\" TEXT NOT NULL,\n    FOREIGN KEY([MASK_3]) REFERENCES \"admissions\"([MASK_3]),\n    FOREIGN KEY(\"icd_version\", \"icd_code\") REFERENCES \"d_icd_diagnoses\"(\"icd_version\", \"icd_code\")\n);\n\nThe CREATE TABLE statement above hides one column name as [MASK_3]. Write the exact hidden column name.\n[MASK_3] =",
+      "max_new_tokens": 16
+    },
+    {
+      "job_id": "dc:mimic_iv:star:diagnoses_icd:2|gen",
+      "system": "Answer with the exact hidden column name only.",
+      "prompt": "CREATE TABLE admissiondiagnoses (\n    recordid INT NOT NULL PRIMARY KEY,\n    patientid INT NOT NULL,\n    [MASK_3] INT NOT NULL,\n    icdcode TEXT NOT NULL,\n    codeversion INT NOT NULL,\n    recordeddatetime TEXT NOT NULL,\n    FOREIGN KEY([MASK_3]) REFERENCES hospitaladmissions([MASK_3]),\n    FOREIGN KEY(codeversion, icdcode) REFERENCES diagnosiscodes(codeversion, icdcode)\n);\n\nThe CREATE TABLE statement above hides one column name as [MASK_3]. Write the exact hidden column name.\n[MASK_3] =",
+      "max_new_tokens": 16
+    },
+    {
+      "job_id": "dc:mimic_iv:original:procedures_icd:0|gen",
+      "system": "Answer with the exact hidden column name only.",
+      "prompt": "CREATE TABLE \"procedures_icd\" (\n    [MASK_1] INT NOT NULL PRIMARY KEY,\n    \"subject_id\" INT NOT NULL,\n    \"hadm_id\" INT NOT NULL,\n    \"icd_code\" TEXT NOT NULL,\n    \"icd_version\" INT NOT NULL,\n    \"charttime\" TEXT NOT NULL,\n    FOREIGN KEY(\"hadm_id\") REFERENCES \"admissions\"(\"hadm_id\"),\n    FOREIGN KEY(\"icd_version\", \"icd_code\") REFERENCES \"d_icd_procedures\"(\"icd_version\", \"icd_code\")\n);\n\nThe CREATE TABLE statement above hides one column name as [MASK_1]. Write the exact hidden column name.\n[MASK_1] =",
+      "max_new_tokens": 16
+    },
+    {
+      "job_id": "dc:mimic_iv:star:procedures_icd:0|gen",
+      "system": "Answer with the exact hidden column name only.",
+      "prompt": "CREATE TABLE admissionprocedures (\n    [MASK_1] INT NOT NULL PRIMARY KEY,\n    patientid INT NOT NULL,\n    admissionid INT NOT NULL,\n    icdcode TEXT NOT NULL,\n    codeversion INT NOT NULL,\n    recordeddatetime TEXT NOT NULL,\n    FOREIGN KEY(admissionid) REFERENCES hospitaladmissions(admissionid),\n    FOREIGN KEY(codeversion, icdcode) REFERENCES procedurecodes(codeversion, icdcode)\n);\n\nThe CREATE TABLE statement above hides one column name as [MASK_1]. Write the exact hidden column name.\n[MASK_1] =",
+      "max_new_tokens": 16
+    },
+    {
+      "job_id": "dc:mimic_iv:original:chartevents:3|gen",
+      "system": "Answer with the exact hidden column name only.",
+      "prompt": "CREATE TABLE \"chartevents\" (\n    \"row_id\" INT NOT NULL PRIMARY KEY,\n    \"subject_id\" INT NOT NULL,\n    \"hadm_id\" INT NOT NULL,\n    [MASK_4] INT NOT NULL,\n    \"itemid\" INT NOT NULL,\n    \"charttime\" TEXT NOT NULL,\n    \"valuenum\" DOUBLE PRECISION,\n    \"valueuom\" TEXT,\n    FOREIGN KEY(\"hadm_id\") REFERENCES \"admissions\"(\"hadm_id\"),\n    FOREIGN KEY([MASK_4]) REFERENCES \"icustays\"([MASK_4]),\n    FOREIGN KEY(\"itemid\") REFERENCES \"d_items\"(\"itemid\")\n);\n\nThe CREATE TABLE statement above hides one column name as [MASK_4]. Write the exact hidden column name.\n[MASK_4] =",
+      "max_new_tokens": 16
+    },
+    {
+      "job_id": "dc:mimic_iv:star:chartevents:3|gen",
+      "system": "Answer with the exact hidden column name only.",
+      "prompt": "CREATE TABLE clinicalevents (\n    recordid INT NOT NULL PRIMARY KEY,\n    patientid INT NOT NULL,\n    admissionid INT NOT NULL,\n    [MASK_4] INT NOT NULL,\n    itemcode INT NOT NULL,\n    recordeddatetime TEXT NOT NULL,\n    value DOUBLE PRECISION,\n    unit TEXT,\n    FOREIGN KEY(admissionid) REFERENCES hospitaladmissions(admissionid),\n    FOREIGN KEY([MASK_4]) REFERENCES icuepisodes([MASK_4]),\n    FOREIGN KEY(itemcode) REFERENCES clinicalitemtypes(itemcode)\n);\n\nThe CREATE TABLE statement above hides one column name as [MASK_4]. Write the exact hidden column name.\n[MASK_4] =",
+      "max_new_tokens": 16
+    },
+    {
+      "job_id": "dc:mimic_iv:original:chartevents:5|gen",
+      "system": "Answer with the exact hidden column name only.",
+      "prompt": "CREATE TABLE \"chartevents\" (\n    \"row_id\" INT NOT NULL PRIMARY KEY,\n    \"subject_id\" INT NOT NULL,\n    \"hadm_id\" INT NOT NULL,\n    \"stay_id\" INT NOT NULL,\n    \"itemid\" INT NOT NULL,\n    [MASK_6] TEXT NOT NULL,\n    \"valuenum\" DOUBLE PRECISION,\n    \"valueuom\" TEXT,\n    FOREIGN KEY(\"hadm_id\") REFERENCES \"admissions\"(\"hadm_id\"),\n    FOREIGN KEY(\"stay_id\") REFERENCES \"icustays\"(\"stay_id\"),\n    FOREIGN KEY(\"itemid\") REFERENCES \"d_items\"(\"itemid\")\n);\n\nThe CREATE TABLE statement above hides one column name as [MASK_6]. Write the exact hidden column name.\n[MASK_6] =",
+      "max_new_tokens": 16
+    },
+    {
+      "job_id": "dc:mimic_iv:star:chartevents:5|gen",
+      "system": "Answer with the exact hidden column name only.",
+      "prompt": "CREATE TABLE clinicalevents (\n    recordid INT NOT NULL PRIMARY KEY,\n    patientid INT NOT NULL,\n    admissionid INT NOT NULL,\n    icuadmissionid INT NOT NULL,\n    itemcode INT NOT NULL,\n    [MASK_6] TEXT NOT NULL,\n    value DOUBLE PRECISION,\n    unit TEXT,\n    FOREIGN KEY(admissionid) REFERENCES hospitaladmissions(admissionid),\n    FOREIGN KEY(icuadmissionid) REFERENCES icuepisodes(icuadmissionid),\n    FOREIGN KEY(itemcode) REFERENCES clinicalitemtypes(itemcode)\n);\n\nThe CREATE TABLE statement above hides one column name as [MASK_6]. Write the exact hidden column name.\n[MASK_6] =",
+      "max_new_tokens": 16
+    },
+    {
+      "job_id": "dc:mimic_iv:original:d_items:2|gen",
+      "system": "Answer with the exact hidden column name only.",
+      "prompt": "CREATE TABLE \"d_items\" (\n    \"row_id\" INT NOT NULL PRIMARY KEY,\n    \"itemid\" INT NOT NULL,\n    [MASK_3] TEXT NOT NULL,\n    abbreviation TEXT NOT NULL,\n    \"linksto\" TEXT NOT NULL\n);\n\nThe CREATE TABLE statement above hides one column name as [MASK_3]. Write the exact hidden column name.\n[MASK_3] =",
+      "max_new_tokens": 16
+    },
+    {
+      "job_id": "dc:mimic_iv:star:d_items:2|gen",
+      "system": "Answer with the exact hidden column name only.",
+      "prompt": "CREATE TABLE clinicalitemtypes (\n    recordid INT NOT NULL PRIMARY KEY,\n    itemcode INT NOT NULL,\n    [MASK_3] TEXT NOT NULL,\n    abbreviation TEXT NOT NULL,\n    itemtype TEXT NOT NULL\n);\n\nThe CREATE TABLE statement above hides one column name as [MASK_3]. Write the exact hidden column name.\n[MASK_3] =",
+      "max_new_tokens": 16
+    },
+    {
+      "job_id": "dc:mimic_iv:original:patients:0|gen",
+      "system": "Answer with the exact hidden column name only.",
+      "prompt": "CREATE TABLE \"patients\" (\n    [MASK_1] INT NOT NULL PRIMARY KEY,\n    \"subject_id\" INT NOT NULL,\n    gender TEXT NOT NULL,\n    \"dob\" TEXT NOT NULL,\n    \"dod\" TEXT\n);\n\nThe CREATE TABLE statement above hides one column name as [MASK_1]. Write the exact hidden column name.\n[MASK_1] =",
+      "max_new_tokens": 16
+    },
+    {
+      "job_id": "dc:mimic_iv:star:patients:0|gen",
+      "system": "Answer with the exact hidden column name only.",
+      "prompt": "CREATE TABLE demographics (\n    [MASK_1] INT NOT NULL PRIMARY KEY,\n    patientid INT NOT NULL,\n    gender TEXT NOT NULL,\n    dateofbirth TEXT NOT NULL,\n    dateofdeath TEXT\n);\n\nThe CREATE TABLE statement above hides one column name as [MASK_1]. Write the exact hidden column name.\n[MASK_1] =",
+      "max_new_tokens": 16
+    },
+    {
+      "job_id": "dc:mimic_iv:original:d_icd_diagnoses:1|gen",
+      "system": "Answer with the exact hidden column name only.",
+      "prompt": "CREATE TABLE \"d_icd_diagnoses\" (\n    \"row_id\" INT NOT NULL PRIMARY KEY,\n    [MASK_2] TEXT NOT NULL,\n    \"icd_version\" INT NOT NULL,\n    \"long_title\" TEXT NOT NULL\n);\n\nThe CREATE TABLE statement above hides one column name as [MASK_2]. Write the exact hidden column name.\n[MASK_2] =",
+      "max_new_tokens": 16
+    },
+    {
+      "job_id": "dc:mimic_iv:star:d_icd_diagnoses:1|gen",
+      "system": "Answer with the exact hidden column name only.",
+      "prompt": "CREATE TABLE diagnosiscodes (\n    recordid INT NOT NULL PRIMARY KEY,\n    [MASK_2] TEXT NOT NULL,\n    codeversion INT NOT NULL,\n    description TEXT NOT NULL\n);\n\nThe CREATE TABLE statement above hides one column name as [MASK_2]. Write the exact hidden column name.\n[MASK_2] =",
+      "max_new_tokens": 16
+    },
+    {
+      "job_id": "dc:mimic_iv:original:admissions:0|gen",
+      "system": "Answer with the exact hidden column name only.",
+      "prompt": "CREATE TABLE \"admissions\" (\n    [MASK_1] INT NOT NULL PRIMARY KEY,\n    \"subject_id\" INT NOT NULL,\n    \"hadm_id\" INT NOT NULL,\n    \"admittime\" TEXT NOT NULL,\n    \"dischtime\" TEXT,\n    \"admission_type\" TEXT NOT NULL,\n    \"admission_location\" TEXT NOT NULL,\n    \"discharge_location\" TEXT,\n    \"insurance\" TEXT NOT NULL,\n    language TEXT,\n    \"marital_status\" TEXT,\n    age INT NOT NULL,\n    FOREIGN KEY(\"subject_id\") REFERENCES \"patients\"(\"subject_id\")\n);\n\nThe CREATE TABLE statement above hides one column name as [MASK_1]. Write the exact hidden column name.\n[MASK_1] =",
+      "max_new_tokens": 16
+    },
+    {
+      "job_id": "dc:mimic_iv:star:admissions:0|gen",
+      "system": "Answer with the exact hidden column name only.",
+      "prompt": "CREATE TABLE hospitaladmissions (\n    [MASK_1] INT NOT NULL PRIMARY KEY,\n    patientid INT NOT NULL,\n    admissionid INT NOT NULL,\n    admitdatetime TEXT NOT NULL,\n    dischargedatetime TEXT,\n    admissiontype TEXT NOT NULL,\n    admitsource TEXT NOT NULL,\n    dischargedestination TEXT,\n    insurancetype TEXT NOT NULL,\n    language TEXT,\n    maritalstatus TEXT,\n    age INT NOT NULL,\n    FOREIGN KEY(patientid) REFERENCES demographics(patientid)\n);\n\nThe CREATE TABLE statement above hides one column name as [MASK_1]. Write the exact hidden column name.\n[MASK_1] =",
+      "max_new_tokens": 16
+    },
+    {
+      "job_id": "dc:mimic_iv:original:admissions:9|gen",
+      "system": "Answer with the exact hidden column name only.",
+      "prompt": "CREATE TABLE \"admissions\" (\n    \"row_id\" INT NOT NULL PRIMARY KEY,\n    \"subject_id\" INT NOT NULL,\n    \"hadm_id\" INT NOT NULL,\n    \"admittime\" TEXT NOT NULL,\n    \"dischtime\" TEXT,\n    \"admission_type\" TEXT NOT NULL,\n    \"admission_location\" TEXT NOT NULL,\n    \"discharge_location\" TEXT,\n    \"insurance\" TEXT NOT NULL,\n    [MASK_10] TEXT,\n    \"marital_status\" TEXT,\n    age INT NOT NULL,\n    FOREIGN KEY(\"subject_id\") REFERENCES \"patients\"(\"subject_id\")\n);\n\nThe CREATE TABLE statement above hides one column name as [MASK_10]. Write the exact hidden column name.\n[MASK_10] =",
+      "max_new_tokens": 16
+    },
+    {
+      "job_id": "dc:mimic_iv:star:admissions:9|gen",
+      "system": "Answer with the exact hidden column name only.",
+      "prompt": "CREATE TABLE hospitaladmissions (\n    recordid INT NOT NULL PRIMARY KEY,\n    patientid INT NOT NULL,\n    admissionid INT NOT NULL,\n    admitdatetime TEXT NOT NULL,\n    dischargedatetime TEXT,\n    admissiontype TEXT NOT NULL,\n    admitsource TEXT NOT NULL,\n    dischargedestination TEXT,\n    insurancetype TEXT NOT NULL,\n    [MASK_10] TEXT,\n    maritalstatus TEXT,\n    age INT NOT NULL,\n    FOREIGN KEY(patientid) REFERENCES demographics(patientid)\n);\n\nThe CREATE TABLE statement above hides one column name as [MASK_10]. Write the exact hidden column name.\n[MASK_10] =",
+      "max_new_tokens": 16
+    },
+    {
+      "job_id": "dc:mimic_iv:original:admissions:11|gen",
+      "system": "Answer with the exact hidden column name only.",
+      "prompt": "CREATE TABLE \"admissions\" (\n    \"row_id\" INT NOT NULL PRIMARY KEY,\n    \"subject_id\" INT NOT NULL,\n    \"hadm_id\" INT NOT NULL,\n    \"admittime\" TEXT NOT NULL,\n    \"dischtime\" TEXT,\n    \"admission_type\" TEXT NOT NULL,\n    \"admission_location\" TEXT NOT NULL,\n    \"discharge_location\" TEXT,\n    \"insurance\" TEXT NOT NULL,\n    language TEXT,\n    \"marital_status\" TEXT,\n    [MASK_12] INT NOT NULL,\n    FOREIGN KEY(\"subject_id\") REFERENCES \"patients\"(\"subject_id\")\n);\n\nThe CREATE TABLE statement above hides one column name as [MASK_12]. Write the exact hidden column name.\n[MASK_12] =",
+      "max_new_tokens": 16
+    },
+    {
+      "job_id": "dc:mimic_iv:star:admissions:11|gen",
+      "system": "Answer with the exact hidden column name only.",
+      "prompt": "CREATE TABLE hospitaladmissions (\n    recordid INT NOT NULL PRIMARY KEY,\n    patientid INT NOT NULL,\n    admissionid INT NOT NULL,\n    admitdatetime TEXT NOT NULL,\n    dischargedatetime TEXT,\n    admissiontype TEXT NOT NULL,\n    admitsource TEXT NOT NULL,\n    dischargedestination TEXT,\n    insurancetype TEXT NOT NULL,\n    language TEXT,\n    maritalstatus TEXT,\n    [MASK_12] INT NOT NULL,\n    FOREIGN KEY(patientid) REFERENCES demographics(patientid)\n);\n\nThe CREATE TABLE statement above hides one column name as [MASK_12]. Write the exact hidden column name.\n[MASK_12] =",
+      "max_new_tokens": 16
+    },
+    {
+      "job_id": "dc:mimic_iv:original:icustays:5|gen",
+      "system": "Answer with the exact hidden column name only.",
+      "prompt": "CREATE TABLE \"icustays\" (\n    \"row_id\" INT NOT NULL PRIMARY KEY,\n    \"subject_id\" INT NOT NULL,\n    \"hadm_id\" INT NOT NULL,\n    \"stay_id\" INT NOT NULL,\n    \"first_careunit\" TEXT NOT NULL,\n    [MASK_6] TEXT NOT NULL,\n    \"intime\" TEXT NOT NULL,\n    \"outtime\" TEXT,\n    FOREIGN KEY(\"hadm_id\") REFERENCES \"admissions\"(\"hadm_id\")\n);\n\nThe CREATE TABLE statement above hides one column name as [MASK_6]. Write the exact hidden column name.\n[MASK_6] =",
+      "max_new_tokens": 16
+    },
+    {
+      "job_id": "dc:mimic_iv:star:icustays:5|gen",
+      "system": "Answer with the exact hidden column name only.",
+      "prompt": "CREATE TABLE icuepisodes (\n    recordid INT NOT NULL PRIMARY KEY,\n    patientid INT NOT NULL,\n    admissionid INT NOT NULL,\n    icuadmissionid INT NOT NULL,\n    initialcareunit TEXT NOT NULL,\n    [MASK_6] TEXT NOT NULL,\n    admitdatetime TEXT NOT NULL,\n    dischargedatetime TEXT,\n    FOREIGN KEY(admissionid) REFERENCES hospitaladmissions(admissionid)\n);\n\nThe CREATE TABLE statement above hides one column name as [MASK_6]. Write the exact hidden column name.\n[MASK_6] =",
+      "max_new_tokens": 16
+    },
+    {
+      "job_id": "dc:mimic_iv:original:icustays:7|gen",
+      "system": "Answer with the exact hidden column name only.",
+      "prompt": "CREATE TABLE \"icustays\" (\n    \"row_id\" INT NOT NULL PRIMARY KEY,\n    \"subject_id\" INT NOT NULL,\n    \"hadm_id\" INT NOT NULL,\n    \"stay_id\" INT NOT NULL,\n    \"first_careunit\" TEXT NOT NULL,\n    \"last_careunit\" TEXT NOT NULL,\n    \"intime\" TEXT NOT NULL,\n    [MASK_8] TEXT,\n    FOREIGN KEY(\"hadm_id\") REFERENCES \"admissions\"(\"hadm_id\")\n);\n\nThe CREATE TABLE statement above hides one column name as [MASK_8]. Write the exact hidden column name.\n[MASK_8] =",
+      "max_new_tokens": 16
+    },
+    {
+      "job_id": "dc:mimic_iv:star:icustays:7|gen",
+      "system": "Answer with the exact hidden column name only.",
+      "prompt": "CREATE TABLE icuepisodes (\n    recordid INT NOT NULL PRIMARY KEY,\n    patientid INT NOT NULL,\n    admissionid INT NOT NULL,\n    icuadmissionid INT NOT NULL,\n    initialcareunit TEXT NOT NULL,\n    finalcareunit TEXT NOT NULL,\n    admitdatetime TEXT NOT NULL,\n    [MASK_8] TEXT,\n    FOREIGN KEY(admissionid) REFERENCES hospitaladmissions(admissionid)\n);\n\nThe CREATE TABLE statement above hides one column name as [MASK_8]. Write the exact hidden column name.\n[MASK_8] =",
+      "max_new_tokens": 16
+    },
+    {
+      "job_id": "dc:mimic_iv:original:inputevents:4|gen",
+      "system": "Answer with the exact hidden column name only.",
+      "prompt": "CREATE TABLE \"inputevents\" (\n    \"row_id\" INT NOT NULL PRIMARY KEY,\n    \"subject_id\" INT NOT NULL,\n    \"hadm_id\" INT NOT NULL,\n    \"stay_id\" INT NOT NULL,\n    [MASK_5] TEXT NOT NULL,\n    \"itemid\" INT NOT NULL,\n    \"totalamount\" DOUBLE PRECISION,\n    \"totalamountuom\" TEXT,\n    FOREIGN KEY(\"hadm_id\") REFERENCES \"admissions\"(\"hadm_id\"),\n    FOREIGN KEY(\"stay_id\") REFERENCES \"icustays\"(\"stay_id\"),\n    FOREIGN KEY(\"itemid\") REFERENCES \"d_items\"(\"itemid\")\n);\n\nThe CREATE TABLE statement above hides one column name as [MASK_5]. Write the exact hidden column name.\n[MASK_5] =",
+      "max_new_tokens": 16
+    },
+    {
+      "job_id": "dc:mimic_iv:star:inputevents:4|gen",
+      "system": "Answer with the exact hidden column name only.",
+      "prompt": "CREATE TABLE intakerecords (\n    recordid INT NOT NULL PRIMARY KEY,\n    patientid INT NOT NULL,\n    admissionid INT NOT NULL,\n    icuadmissionid INT NOT NULL,\n    [MASK_5] TEXT NOT NULL,\n    itemcode INT NOT NULL,\n    totalvolume DOUBLE PRECISION,\n    volumeunit TEXT,\n    FOREIGN KEY(admissionid) REFERENCES hospitaladmissions(admissionid),\n    FOREIGN KEY(icuadmissionid) REFERENCES icuepisodes(icuadmissionid),\n    FOREIGN KEY(itemcode) REFERENCES clinicalitemtypes(itemcode)\n);\n\nThe CREATE TABLE statement above hides one column name as [MASK_5]. Write the exact hidden column name.\n[MASK_5] =",
+      "max_new_tokens": 16
+    },
+    {
+      "job_id": "dc:mimic_iv:original:inputevents:7|gen",
+      "system": "Answer with the exact hidden column name only.",
+      "prompt": "CREATE TABLE \"inputevents\" (\n    \"row_id\" INT NOT NULL PRIMARY KEY,\n    \"subject_id\" INT NOT NULL,\n    \"hadm_id\" INT NOT NULL,\n    \"stay_id\" INT NOT NULL,\n    \"starttime\" TEXT NOT NULL,\n    \"itemid\" INT NOT NULL,\n    \"totalamount\" DOUBLE PRECISION,\n    [MASK_8] TEXT,\n    FOREIGN KEY(\"hadm_id\") REFERENCES \"admissions\"(\"hadm_id\"),\n    FOREIGN KEY(\"stay_id\") REFERENCES \"icustays\"(\"stay_id\"),\n    FOREIGN KEY(\"itemid\") REFERENCES \"d_items\"(\"itemid\")\n);\n\nThe CREATE TABLE statement above hides one column name as [MASK_8]. Write the exact hidden column name.\n[MASK_8] =",
+      "max_new_tokens": 16
+    },
+    {
+      "job_id": "dc:mimic_iv:star:inputevents:7|gen",
+      "system": "Answer with the exact hidden column name only.",
+      "prompt": "CREATE TABLE intakerecords (\n    recordid INT NOT NULL PRIMARY KEY,\n    patientid INT NOT NULL,\n    admissionid INT NOT NULL,\n    icuadmissionid INT NOT NULL,\n    startdatetime TEXT NOT NULL,\n    itemcode INT NOT NULL,\n    totalvolume DOUBLE PRECISION,\n    [MASK_8] TEXT,\n    FOREIGN KEY(admissionid) REFERENCES hospitaladmissions(admissionid),\n    FOREIGN KEY(icuadmissionid) REFERENCES icuepisodes(icuadmissionid),\n    FOREIGN KEY(itemcode) REFERENCES clinicalitemtypes(itemcode)\n);\n\nThe CREATE TABLE statement above hides one column name as [MASK_8]. Write the exact hidden column name.\n[MASK_8] =",
+      "max_new_tokens": 16
+    },
+    {
+      "job_id": "dc:mimic_iv:original:labevents:3|gen",
+      "system": "Answer with the exact hidden column name only.",
+      "prompt": "CREATE TABLE \"labevents\" (\n    \"row_id\" INT NOT NULL PRIMARY KEY,\n    \"subject_id\" INT NOT NULL,\n    \"hadm_id\" INT NOT NULL,\n    [MASK_4] INT NOT NULL,\n    \"charttime\" TEXT,\n    \"valuenum\" DOUBLE PRECISION,\n    \"valueuom\" TEXT,\n    FOREIGN KEY(\"hadm_id\") REFERENCES \"admissions\"(\"hadm_id\"),\n    FOREIGN KEY([MASK_4]) REFERENCES \"d_labitems\"([MASK_4])\n);\n\nThe CREATE TABLE statement above hides one column name as [MASK_4]. Write the exact hidden column name.\n[MASK_4] =",
+      "max_new_tokens": 16
+    },
+    {
+      "job_id": "dc:mimic_iv:star:labevents:3|gen",
+      "system": "Answer with the exact hidden column name only.",
+      "prompt": "CREATE TABLE labresults (\n    recordid INT NOT NULL PRIMARY KEY,\n    patientid INT NOT NULL,\n    admissionid INT NOT NULL,\n    [MASK_4] INT NOT NULL,\n    resultdatetime TEXT,\n    resultvalue DOUBLE PRECISION,\n    resultunit TEXT,\n    FOREIGN KEY(admissionid) REFERENCES hospitaladmissions(admissionid),\n    FOREIGN KEY([MASK_4]) REFERENCES labtesttypes([MASK_4])\n);\n\nThe CREATE TABLE statement above hides one column name as [MASK_4]. Write the exact hidden column name.\n[MASK_4] =",
+      "max_new_tokens": 16
+    },
+    {
+      "job_id": "dc:mimic_iv:original:d_labitems:0|gen",
+      "system": "Answer with the exact hidden column name only.",
+      "prompt": "CREATE TABLE \"d_labitems\" (\n    [MASK_1] INT NOT NULL PRIMARY KEY,\n    \"itemid\" INT NOT NULL,\n    \"label\" TEXT\n);\n\nThe CREATE TABLE statement above hides one column name as [MASK_1]. Write the exact hidden column name.\n[MASK_1] =",
+      "max_new_tokens": 16
+    },
+    {
+      "job_id": "dc:mimic_iv:star:d_labitems:0|gen",
+      "system": "Answer with the exact hidden column name only.",
+      "prompt": "CREATE TABLE labtesttypes (\n    [MASK_1] INT NOT NULL PRIMARY KEY,\n    itemcode INT NOT NULL,\n    itemname TEXT\n);\n\nThe CREATE TABLE statement above hides one column name as [MASK_1]. Write the exact hidden column name.\n[MASK_1] =",
+      "max_new_tokens": 16
+    },
+    {
+      "job_id": "dc:mimic_iv:original:prescriptions:2|gen",
+      "system": "Answer with the exact hidden column name only.",
+      "prompt": "CREATE TABLE \"prescriptions\" (\n    \"row_id\" INT NOT NULL PRIMARY KEY,\n    \"subject_id\" INT NOT NULL,\n    [MASK_3] INT NOT NULL,\n    \"starttime\" TEXT NOT NULL,\n    \"stoptime\" TEXT,\n    \"drug\" TEXT NOT NULL,\n    \"dose_val_rx\" TEXT NOT NULL,\n    \"dose_unit_rx\" TEXT NOT NULL,\n    \"route\" TEXT NOT NULL,\n    FOREIGN KEY([MASK_3]) REFERENCES \"admissions\"([MASK_3])\n);\n\nThe CREATE TABLE statement above hides one column name as [MASK_3]. Write the exact hidden column name.\n[MASK_3] =",
+      "max_new_tokens": 16
+    },
+    {
+      "job_id": "dc:mimic_iv:star:prescriptions:2|gen",
+      "system": "Answer with the exact hidden column name only.",
+      "prompt": "CREATE TABLE medicationorders (\n    recordid INT NOT NULL PRIMARY KEY,\n    patientid INT NOT NULL,\n    [MASK_3] INT NOT NULL,\n    startdatetime TEXT NOT NULL,\n    enddatetime TEXT,\n    medicationname TEXT NOT NULL,\n    dosevalue TEXT NOT NULL,\n    doseunit TEXT NOT NULL,\n    administrationroute TEXT NOT NULL,\n    FOREIGN KEY([MASK_3]) REFERENCES hospitaladmissions([MASK_3])\n);\n\nThe CREATE TABLE statement above hides one column name as [MASK_3]. Write the exact hidden column name.\n[MASK_3] =",
+      "max_new_tokens": 16
+    },
+    {
+      "job_id": "dc:mimic_iv:original:prescriptions:3|gen",
+      "system": "Answer with the exact hidden column name only.",
+      "prompt": "CREATE TABLE \"prescriptions\" (\n    \"row_id\" INT NOT NULL PRIMARY KEY,\n    \"subject_id\" INT NOT NULL,\n    \"hadm_id\" INT NOT NULL,\n    [MASK_4] TEXT NOT NULL,\n    \"stoptime\" TEXT,\n    \"drug\" TEXT NOT NULL,\n    \"dose_val_rx\" TEXT NOT NULL,\n    \"dose_unit_rx\" TEXT NOT NULL,\n    \"route\" TEXT NOT NULL,\n    FOREIGN KEY(\"hadm_id\") REFERENCES \"admissions\"(\"hadm_id\")\n);\n\nThe CREATE TABLE statement above hides one column name as [MASK_4]. Write the exact hidden column name.\n[MASK_4] =",
+      "max_new_tokens": 16
+    },
+    {
+      "job_id": "dc:mimic_iv:star:prescriptions:3|gen",
+      "system": "Answer with the exact hidden column name only.",
+      "prompt": "CREATE TABLE medicationorders (\n    recordid INT NOT NULL PRIMARY KEY,\n    patientid INT NOT NULL,\n    admissionid INT NOT NULL,\n    [MASK_4] TEXT NOT NULL,\n    enddatetime TEXT,\n    medicationname TEXT NOT NULL,\n    dosevalue TEXT NOT NULL,\n    doseunit TEXT NOT NULL,\n    administrationroute TEXT NOT NULL,\n    FOREIGN KEY(admissionid) REFERENCES hospitaladmissions(admissionid)\n);\n\nThe CREATE TABLE statement above hides one column name as [MASK_4]. Write the exact hidden column name.\n[MASK_4] =",
+      "max_new_tokens": 16
+    },
+    {
+      "job_id": "dc:mimic_iv:original:microbiologyevents:1|gen",
+      "system": "Answer with the exact hidden column name only.",
+      "prompt": "CREATE TABLE \"microbiologyevents\" (\n    \"row_id\" INT NOT NULL PRIMARY KEY,\n    [MASK_2] INT NOT NULL,\n    \"hadm_id\" INT NOT NULL,\n    \"charttime\" TEXT NOT NULL,\n    \"spec_type_desc\" TEXT,\n    \"test_name\" TEXT,\n    \"org_name\" TEXT,\n    FOREIGN KEY(\"hadm_id\") REFERENCES \"admissions\"(\"hadm_id\")\n);\n\nThe CREATE TABLE statement above hides one column name as [MASK_2]. Write the exact hidden column name.\n[MASK_2] =",
+      "max_new_tokens": 16
+    },
+    {
+      "job_id": "dc:mimic_iv:star:microbiologyevents:1|gen",
+      "system": "Answer with the exact hidden column name only.",
+      "prompt": "CREATE TABLE microbiologyresults (\n    recordid INT NOT NULL PRIMARY KEY,\n    [MASK_2] INT NOT NULL,\n    admissionid INT NOT NULL,\n    collecteddatetime TEXT NOT NULL,\n    specimentype TEXT,\n    testname TEXT,\n    organismname TEXT,\n    FOREIGN KEY(admissionid) REFERENCES hospitaladmissions(admissionid)\n);\n\nThe CREATE TABLE statement above hides one column name as [MASK_2]. Write the exact hidden column name.\n[MASK_2] =",
+      "max_new_tokens": 16
+    },
+    {
+      "job_id": "dc:mimic_iv:original:outputevents:0|gen",
+      "system": "Answer with the exact hidden column name only.",
+      "prompt": "CREATE TABLE \"outputevents\" (\n    [MASK_1] INT NOT NULL PRIMARY KEY,\n    \"subject_id\" INT NOT NULL,\n    \"hadm_id\" INT NOT NULL,\n    \"stay_id\" INT NOT NULL,\n    \"charttime\" TEXT NOT NULL,\n    \"itemid\" INT NOT NULL,\n    \"value\" DOUBLE PRECISION,\n    \"valueuom\" TEXT,\n    FOREIGN KEY(\"hadm_id\") REFERENCES \"admissions\"(\"hadm_id\"),\n    FOREIGN KEY(\"stay_id\") REFERENCES \"icustays\"(\"stay_id\"),\n    FOREIGN KEY(\"itemid\") REFERENCES \"d_items\"(\"itemid\")\n);\n\nThe CREATE TABLE statement above hides one column name as [MASK_1]. Write the exact hidden column name.\n[MASK_1] =",
+      "max_new_tokens": 16
+    },
+    {
+      "job_id": "dc:mimic_iv:star:outputevents:0|gen",
+      "system": "Answer with the exact hidden column name only.",
+      "prompt": "CREATE TABLE outputrecords (\n    [MASK_1] INT NOT NULL PRIMARY KEY,\n    patientid INT NOT NULL,\n    admissionid INT NOT NULL,\n    icuadmissionid INT NOT NULL,\n    recordeddatetime TEXT NOT NULL,\n    itemcode INT NOT NULL,\n    volume DOUBLE PRECISION,\n    volumeunit TEXT,\n    FOREIGN KEY(admissionid) REFERENCES hospitaladmissions(admissionid),\n    FOREIGN KEY(icuadmissionid) REFERENCES icuepisodes(icuadmissionid),\n    FOREIGN KEY(itemcode) REFERENCES clinicalitemtypes(itemcode)\n);\n\nThe CREATE TABLE statement above hides one column name as [MASK_1]. Write the exact hidden column name.\n[MASK_1] =",
+      "max_new_tokens": 16
+    },
+    {
+      "job_id": "dc:mimic_iv:original:outputevents:6|gen",
+      "system": "Answer with the exact hidden column name only.",
+      "prompt": "CREATE TABLE \"outputevents\" (\n    \"row_id\" INT NOT NULL PRIMARY KEY,\n    \"subject_id\" INT NOT NULL,\n    \"hadm_id\" INT NOT NULL,\n    \"stay_id\" INT NOT NULL,\n    \"charttime\" TEXT NOT NULL,\n    \"itemid\" INT NOT NULL,\n    [MASK_7] DOUBLE PRECISION,\n    \"valueuom\" TEXT,\n    FOREIGN KEY(\"hadm_id\") REFERENCES \"admissions\"(\"hadm_id\"),\n    FOREIGN KEY(\"stay_id\") REFERENCES \"icustays\"(\"stay_id\"),\n    FOREIGN KEY(\"itemid\") REFERENCES \"d_items\"(\"itemid\")\n);\n\nThe CREATE TABLE statement above hides one column name as [MASK_7]. Write the exact hidden column name.\n[MASK_7] =",
+      "max_new_tokens": 16
+    },
+    {
+      "job_id": "dc:mimic_iv:star:outputevents:6|gen",
+      "system": "Answer with the exact hidden column name only.",
+      "prompt": "CREATE TABLE outputrecords (\n    recordid INT NOT NULL PRIMARY KEY,\n    patientid INT NOT NULL,\n    admissionid INT NOT NULL,\n    icuadmissionid INT NOT NULL,\n    recordeddatetime TEXT NOT NULL,\n    itemcode INT NOT NULL,\n    [MASK_7] DOUBLE PRECISION,\n    volumeunit TEXT,\n    FOREIGN KEY(admissionid) REFERENCES hospitaladmissions(admissionid),\n    FOREIGN KEY(icuadmissionid) REFERENCES icuepisodes(icuadmissionid),\n    FOREIGN KEY(itemcode) REFERENCES clinicalitemtypes(itemcode)\n);\n\nThe CREATE TABLE statement above hides one column name as [MASK_7]. Write the exact hidden column name.\n[MASK_7] =",
+      "max_new_tokens": 16
+    },
+    {
+      "job_id": "dc:mimic_iv:original:transfers:1|gen",
+      "system": "Answer with the exact hidden column name only.",
+      "prompt": "CREATE TABLE \"transfers\" (\n    \"row_id\" INT NOT NULL PRIMARY KEY,\n    [MASK_2] INT NOT NULL,\n    \"hadm_id\" INT NOT NULL,\n    \"transfer_id\" INT NOT NULL,\n    \"eventtype\" TEXT NOT NULL,\n    careunit TEXT,\n    \"intime\" TEXT NOT NULL,\n    \"outtime\" TEXT,\n    FOREIGN KEY(\"hadm_id\") REFERENCES \"admissions\"(\"hadm_id\")\n);\n\nThe CREATE TABLE statement above hides one column name as [MASK_2]. Write the exact hidden column name.\n[MASK_2] =",
+      "max_new_tokens": 16
+    },
+    {
+      "job_id": "dc:mimic_iv:star:transfers:1|gen",
+      "system": "Answer with the exact hidden column name only.",
+      "prompt": "CREATE TABLE patienttransfers (\n    recordid INT NOT NULL PRIMARY KEY,\n    [MASK_2] INT NOT NULL,\n    admissionid INT NOT NULL,\n    transferid INT NOT NULL,\n    transfertype TEXT NOT NULL,\n    careunit TEXT,\n    transferindatetime TEXT NOT NULL,\n    transferoutdatetime TEXT,\n    FOREIGN KEY(admissionid) REFERENCES hospitaladmissions(admissionid)\n);\n\nThe CREATE TABLE statement above hides one column name as [MASK_2]. Write the exact hidden column name.\n[MASK_2] =",
+      "max_new_tokens": 16
+    },
+    {
+      "job_id": "dc:mimic_iv:original:transfers:6|gen",
+      "system": "Answer with the exact hidden column name only.",
+      "prompt": "CREATE TABLE \"transfers\" (\n    \"row_id\" INT NOT NULL PRIMARY KEY,\n    \"subject_id\" INT NOT NULL,\n    \"hadm_id\" INT NOT NULL,\n    \"transfer_id\" INT NOT NULL,\n    \"eventtype\" TEXT NOT NULL,\n    careunit TEXT,\n    [MASK_7] TEXT NOT NULL,\n    \"outtime\" TEXT,\n    FOREIGN KEY(\"hadm_id\") REFERENCES \"admissions\"(\"hadm_id\")\n);\n\nThe CREATE TABLE statement above hides one column name as [MASK_7]. Write the exact hidden column name.\n[MASK_7] =",
+      "max_new_tokens": 16
+    },
+    {
+      "job_id": "dc:mimic_iv:star:transfers:6|gen",
+      "system": "Answer with the exact hidden column name only.",
+      "prompt": "CREATE TABLE patienttransfers (\n    recordid INT NOT NULL PRIMARY KEY,\n    patientid INT NOT NULL,\n    admissionid INT NOT NULL,\n    transferid INT NOT NULL,\n    transfertype TEXT NOT NULL,\n    careunit TEXT,\n    [MASK_7] TEXT NOT NULL,\n    transferoutdatetime TEXT,\n    FOREIGN KEY(admissionid) REFERENCES hospitaladmissions(admissionid)\n);\n\nThe CREATE TABLE statement above hides one column name as [MASK_7]. Write the exact hidden column name.\n[MASK_7] =",
+      "max_new_tokens": 16
+    },
+    {
+      "job_id": "dc:mimic_iv:original:d_icd_procedures:2|gen",
+      "system": "Answer with the exact hidden column name only.",
+      "prompt": "CREATE TABLE \"d_icd_procedures\" (\n    \"row_id\" INT NOT NULL PRIMARY KEY,\n    \"icd_code\" TEXT NOT NULL,\n    [MASK_3] INT NOT NULL,\n    \"long_title\" TEXT NOT NULL\n);\n\nThe CREATE TABLE statement above hides one column name as [MASK_3]. Write the exact hidden column name.\n[MASK_3] =",
+      "max_new_tokens": 16
+    },
+    {
+      "job_id": "dc:mimic_iv:star:d_icd_procedures:2|gen",
+      "system": "Answer with the exact hidden column name only.",
+      "prompt": "CREATE TABLE procedurecodes (\n    recordid INT NOT NULL PRIMARY KEY,\n    icdcode TEXT NOT NULL,\n    [MASK_3] INT NOT NULL,\n    description TEXT NOT NULL\n);\n\nThe CREATE TABLE statement above hides one column name as [MASK_3]. Write the exact hidden column name.\n[MASK_3] =",
+      "max_new_tokens": 16
+    },
+    {
+      "job_id": "dc:eicu:original:allergy:4|gen",
+      "system": "Answer with the exact hidden column name only.",
+      "prompt": "CREATE TABLE \"allergy\" (\n    \"allergyid\" INT NOT NULL PRIMARY KEY,\n    \"patientunitstayid\" INT NOT NULL,\n    \"drugname\" TEXT,\n    \"allergyname\" TEXT NOT NULL,\n    [MASK_5] TEXT NOT NULL,\n    FOREIGN KEY(\"patientunitstayid\") REFERENCES \"patient\"(\"patientunitstayid\")\n);\n\nThe CREATE TABLE statement above hides one column name as [MASK_5]. Write the exact hidden column name.\n[MASK_5] =",
+      "max_new_tokens": 16
+    },
+    {
+      "job_id": "dc:eicu:star:allergy:4|gen",
+      "system": "Answer with the exact hidden column name only.",
+      "prompt": "CREATE TABLE allergy_reaction (\n    allergy_id INT NOT NULL PRIMARY KEY,\n    unit_id INT NOT NULL,\n    drug_name TEXT,\n    allergy_name TEXT NOT NULL,\n    [MASK_5] TEXT NOT NULL,\n    FOREIGN KEY(unit_id) REFERENCES icupatient(unit_id)\n);\n\nThe CREATE TABLE statement above hides one column name as [MASK_5]. Write the exact hidden column name.\n[MASK_5] =",
+      "max_new_tokens": 16
+    },
+    {
+      "job_id": "dc:eicu:original:diagnosis:0|gen",
+      "system": "Answer with the exact hidden column name only.",
+      "prompt": "CREATE TABLE \"diagnosis\" (\n    [MASK_1] INT NOT NULL PRIMARY KEY,\n    \"patientunitstayid\" INT NOT NULL,\n    \"diagnosisname\" TEXT NOT NULL,\n    \"diagnosistime\" TEXT NOT NULL,\n    \"icd9code\" TEXT,\n    FOREIGN KEY(\"patientunitstayid\") REFERENCES \"patient\"(\"patientunitstayid\")\n);\n\nThe CREATE TABLE statement above hides one column name as [MASK_1]. Write the exact hidden column name.\n[MASK_1] =",
+      "max_new_tokens": 16
+    },
+    {
+      "job_id": "dc:eicu:star:diagnosis:0|gen",
+      "system": "Answer with the exact hidden column name only.",
+      "prompt": "CREATE TABLE condition (\n    [MASK_1] INT NOT NULL PRIMARY KEY,\n    unit_id INT NOT NULL,\n    condition_name TEXT NOT NULL,\n    condition_time TEXT NOT NULL,\n    icd9_code TEXT,\n    FOREIGN KEY(unit_id) REFERENCES icupatient(unit_id)\n);\n\nThe CREATE TABLE statement above hides one column name as [MASK_1]. Write the exact hidden column name.\n[MASK_1] =",
+      "max_new_tokens": 16
+    },
+    {
+      "job_id": "dc:eicu:original:cost:1|gen",
+      "system": "Answer with the exact hidden column name only.",
+      "prompt": "CREATE TABLE cost (\n    \"costid\" INT NOT NULL PRIMARY KEY,\n    [MASK_2] INT NOT NULL,\n    \"patientunitstayid\" INT NOT NULL,\n    \"eventtype\" TEXT NOT NULL,\n    \"eventid\" INT NOT NULL,\n    \"chargetime\" TEXT NOT NULL,\n    \"cost\" REAL NOT NULL,\n    FOREIGN KEY([MASK_2]) REFERENCES \"patient\"([MASK_2])\n);\n\nThe CREATE TABLE statement above hides one column name as [MASK_2]. Write the exact hidden column name.\n[MASK_2] =",
+      "max_new_tokens": 16
+    },
+    {
+      "job_id": "dc:eicu:star:cost:1|gen",
+      "system": "Answer with the exact hidden column name only.",
+      "prompt": "CREATE TABLE cost (\n    cost_id INT NOT NULL PRIMARY KEY,\n    [MASK_2] INT NOT NULL,\n    unit_id INT NOT NULL,\n    event_type TEXT NOT NULL,\n    event_id INT NOT NULL,\n    cost_time TEXT NOT NULL,\n    cost_amount REAL NOT NULL,\n    FOREIGN KEY([MASK_2]) REFERENCES icupatient([MASK_2])\n);\n\nThe CREATE TABLE statement above hides one column name as [MASK_2]. Write the exact hidden column name.\n[MASK_2] =",
+      "max_new_tokens": 16
+    },
+    {
+      "job_id": "dc:eicu:original:intakeoutput:3|gen",
+      "system": "Answer with the exact hidden column name only.",
+      "prompt": "CREATE TABLE \"intakeoutput\" (\n    \"intakeoutputid\" INT NOT NULL PRIMARY KEY,\n    \"patientunitstayid\" INT NOT NULL,\n    \"cellpath\" TEXT NOT NULL,\n    [MASK_4] TEXT NOT NULL,\n    \"cellvaluenumeric\" REAL NOT NULL,\n    \"intakeoutputtime\" TEXT NOT NULL,\n    FOREIGN KEY(\"patientunitstayid\") REFERENCES \"patient\"(\"patientunitstayid\")\n);\n\nThe CREATE TABLE statement above hides one column name as [MASK_4]. Write the exact hidden column name.\n[MASK_4] =",
+      "max_new_tokens": 16
+    },
+    {
+      "job_id": "dc:eicu:star:intakeoutput:3|gen",
+      "system": "Answer with the exact hidden column name only.",
+      "prompt": "CREATE TABLE fluid_balance (\n    fluid_balance_id INT NOT NULL PRIMARY KEY,\n    unit_id INT NOT NULL,\n    fluid_path TEXT NOT NULL,\n    [MASK_4] TEXT NOT NULL,\n    fluid_value_numeric REAL NOT NULL,\n    fluid_balance_time TEXT NOT NULL,\n    FOREIGN KEY(unit_id) REFERENCES icupatient(unit_id)\n);\n\nThe CREATE TABLE statement above hides one column name as [MASK_4]. Write the exact hidden column name.\n[MASK_4] =",
+      "max_new_tokens": 16
+    },
+    {
+      "job_id": "dc:eicu:original:hospital:2|gen",
+      "system": "Answer with the exact hidden column name only.",
+      "prompt": "CREATE TABLE hospital (\n    \"hospitalid\" INT NOT NULL PRIMARY KEY,\n    \"numbedscategory\" TEXT,\n    [MASK_3] TEXT,\n    region TEXT\n);\n\nThe CREATE TABLE statement above hides one column name as [MASK_3]. Write the exact hidden column name.\n[MASK_3] =",
+      "max_new_tokens": 16
+    },
+    {
+      "job_id": "dc:eicu:star:hospital:2|gen",
+      "system": "Answer with the exact hidden column name only.",
+      "prompt": "CREATE TABLE hospital (\n    hospital_id INT NOT NULL PRIMARY KEY,\n    bed_capacity_category TEXT,\n    [MASK_3] TEXT,\n    region TEXT\n);\n\nThe CREATE TABLE statement above hides one column name as [MASK_3]. Write the exact hidden column name.\n[MASK_3] =",
+      "max_new_tokens": 16
+    },
+    {
+      "job_id": "dc:eicu:original:patient:3|gen",
+      "system": "Answer with the exact hidden column name only.",
+      "prompt": "CREATE TABLE \"patient\" (\n    \"uniquepid\" TEXT NOT NULL,\n    \"patienthealthsystemstayid\" INT NOT NULL,\n    \"patientunitstayid\" INT NOT NULL PRIMARY KEY,\n    [MASK_4] TEXT NOT NULL,\n    age INT NOT NULL,\n    ethnicity TEXT,\n    \"hospitalid\" INT NOT NULL,\n    \"wardid\" INT NOT NULL,\n    \"admissionheight\" REAL,\n    \"admissionweight\" REAL,\n    \"dischargeweight\" REAL,\n    \"hospitaladmittime\" TEXT NOT NULL,\n    \"hospitaladmitsource\" TEXT NOT NULL,\n    \"unitadmittime\" TEXT NOT NULL,\n    \"unitdischargetime\" TEXT,\n    \"hospitaldischargetime\" TEXT,\n    \"hospitaldischargestatus\" TEXT\n);\n\nThe CREATE TABLE statement above hides one column name as [MASK_4]. Write the exact hidden column name.\n[MASK_4] =",
+      "max_new_tokens": 16
+    },
+    {
+      "job_id": "dc:eicu:star:patient:3|gen",
+      "system": "Answer with the exact hidden column name only.",
+      "prompt": "CREATE TABLE icupatient (\n    patient_id TEXT NOT NULL,\n    hosp_id INT NOT NULL,\n    unit_id INT NOT NULL PRIMARY KEY,\n    [MASK_4] TEXT NOT NULL,\n    age INT NOT NULL,\n    ethnicity TEXT,\n    hospital_id INT NOT NULL,\n    ward_id INT NOT NULL,\n    height_admission REAL,\n    weight_admission REAL,\n    weight_discharge REAL,\n    hospital_admit_time TEXT NOT NULL,\n    hospital_admission_source TEXT NOT NULL,\n    unit_admit_time TEXT NOT NULL,\n    unit_discharge_time TEXT,\n    hospital_discharge_time TEXT,\n    hospital_discharge_status TEXT\n);\n\nThe CREATE TABLE statement above hides one column name as [MASK_4]. Write the exact hidden column name.\n[MASK_4] =",
+      "max_new_tokens": 16
+    },
+    {
+      "job_id": "dc:eicu:original:patient:6|gen",
+      "system": "Answer with the exact hidden column name only.",
+      "prompt": "CREATE TABLE \"patient\" (\n    \"uniquepid\" TEXT NOT NULL,\n    \"patienthealthsystemstayid\" INT NOT NULL,\n    \"patientunitstayid\" INT NOT NULL PRIMARY KEY,\n    gender TEXT NOT NULL,\n    age INT NOT NULL,\n    ethnicity TEXT,\n    [MASK_7] INT NOT NULL,\n    \"wardid\" INT NOT NULL,\n    \"admissionheight\" REAL,\n    \"admissionweight\" REAL,\n    \"dischargeweight\" REAL,\n    \"hospitaladmittime\" TEXT NOT NULL,\n    \"hospitaladmitsource\" TEXT NOT NULL,\n    \"unitadmittime\" TEXT NOT NULL,\n    \"unitdischargetime\" TEXT,\n    \"hospitaldischargetime\" TEXT,\n    \"hospitaldischargestatus\" TEXT\n);\n\nThe CREATE TABLE statement above hides one column name as [MASK_7]. Write the exact hidden column name.\n[MASK_7] =",
+      "max_new_tokens": 16
+    },
+    {
+      "job_id": "dc:eicu:star:patient:6|gen",
+      "system": "Answer with the exact hidden column name only.",
+      "prompt": "CREATE TABLE icupatient (\n    patient_id TEXT NOT NULL,\n    hosp_id INT NOT NULL,\n    unit_id INT NOT NULL PRIMARY KEY,\n    gender TEXT NOT NULL,\n    age INT NOT NULL,\n    ethnicity TEXT,\n    [MASK_7] INT NOT NULL,\n    ward_id INT NOT NULL,\n    height_admission REAL,\n    weight_admission REAL,\n    weight_discharge REAL,\n    hospital_admit_time TEXT NOT NULL,\n    hospital_admission_source TEXT NOT NULL,\n    unit_admit_time TEXT NOT NULL,\n    unit_discharge_time TEXT,\n    hospital_discharge_time TEXT,\n    hospital_discharge_status TEXT\n);\n\nThe CREATE TABLE statement above hides one column name as [MASK_7]. Write the exact hidden column name.\n[MASK_7] =",
+      "max_new_tokens": 16
+    },
+    {
+      "job_id": "dc:eicu:original:patient:8|gen",
+      "system": "Answer with the exact hidden column name only.",
+      "prompt": "CREATE TABLE \"patient\" (\n    \"uniquepid\" TEXT NOT NULL,\n    \"patienthealthsystemstayid\" INT NOT NULL,\n    \"patientunitstayid\" INT NOT NULL PRIMARY KEY,\n    gender TEXT NOT NULL,\n    age INT NOT NULL,\n    ethnicity TEXT,\n    \"hospitalid\" INT NOT NULL,\n    \"wardid\" INT NOT NULL,\n    [MASK_9] REAL,\n    \"admissionweight\" REAL,\n    \"dischargeweight\" REAL,\n    \"hospitaladmittime\" TEXT NOT NULL,\n    \"hospitaladmitsource\" TEXT NOT NULL,\n    \"unitadmittime\" TEXT NOT NULL,\n    \"unitdischargetime\" TEXT,\n    \"hospitaldischargetime\" TEXT,\n    \"hospitaldischargestatus\" TEXT\n);\n\nThe CREATE TABLE statement above hides one column name as [MASK_9]. Write the exact hidden column name.\n[MASK_9] =",
+      "max_new_tokens": 16
+    },
+    {
+      "job_id": "dc:eicu:star:patient:8|gen",
+      "system": "Answer with the exact hidden column name only.",
+      "prompt": "CREATE TABLE icupatient (\n    patient_id TEXT NOT NULL,\n    hosp_id INT NOT NULL,\n    unit_id INT NOT NULL PRIMARY KEY,\n    gender TEXT NOT NULL,\n    age INT NOT NULL,\n    ethnicity TEXT,\n    hospital_id INT NOT NULL,\n    ward_id INT NOT NULL,\n    [MASK_9] REAL,\n    weight_admission REAL,\n    weight_discharge REAL,\n    hospital_admit_time TEXT NOT NULL,\n    hospital_admission_source TEXT NOT NULL,\n    unit_admit_time TEXT NOT NULL,\n    unit_discharge_time TEXT,\n    hospital_discharge_time TEXT,\n    hospital_discharge_status TEXT\n);\n\nThe CREATE TABLE statement above hides one column name as [MASK_9]. Write the exact hidden column name.\n[MASK_9] =",
+      "max_new_tokens": 16
+    },
+    {
+      "job_id": "dc:eicu:original:patient:16|gen",
+      "system": "Answer with the exact hidden column name only.",
+      "prompt": "CREATE TABLE \"patient\" (\n    \"uniquepid\" TEXT NOT NULL,\n    \"patienthealthsystemstayid\" INT NOT NULL,\n    \"patientunitstayid\" INT NOT NULL PRIMARY KEY,\n    gender TEXT NOT NULL,\n    age INT NOT NULL,\n    ethnicity TEXT,\n    \"hospitalid\" INT NOT NULL,\n    \"wardid\" INT NOT NULL,\n    \"admissionheight\" REAL,\n    \"admissionweight\" REAL,\n    \"dischargeweight\" REAL,\n    \"hospitaladmittime\" TEXT NOT NULL,\n    \"hospitaladmitsource\" TEXT NOT NULL,\n    \"unitadmittime\" TEXT NOT NULL,\n    \"unitdischargetime\" TEXT,\n    \"hospitaldischargetime\" TEXT,\n    [MASK_17] TEXT\n);\n\nThe CREATE TABLE statement above hides one column name as [MASK_17]. Write the exact hidden column name.\n[MASK_17] =",
+      "max_new_tokens": 16
+    },
+    {
+      "job_id": "dc:eicu:star:patient:16|gen",
+      "system": "Answer with the exact hidden column name only.",
+      "prompt": "CREATE TABLE icupatient (\n    patient_id TEXT NOT NULL,\n    hosp_id INT NOT NULL,\n    unit_id INT NOT NULL PRIMARY KEY,\n    gender TEXT NOT NULL,\n    age INT NOT NULL,\n    ethnicity TEXT,\n    hospital_id INT NOT NULL,\n    ward_id INT NOT NULL,\n    height_admission REAL,\n    weight_admission REAL,\n    weight_discharge REAL,\n    hospital_admit_time TEXT NOT NULL,\n    hospital_admission_source TEXT NOT NULL,\n    unit_admit_time TEXT NOT NULL,\n    unit_discharge_time TEXT,\n    hospital_discharge_time TEXT,\n    [MASK_17] TEXT\n);\n\nThe CREATE TABLE statement above hides one column name as [MASK_17]. Write the exact hidden column name.\n[MASK_17] =",
+      "max_new_tokens": 16
+    },
+    {
+      "job_id": "dc:eicu:original:lab:2|gen",
+      "system": "Answer with the exact hidden column name only.",
+      "prompt": "CREATE TABLE lab (\n    \"labid\" INT NOT NULL PRIMARY KEY,\n    \"patientunitstayid\" INT NOT NULL,\n    [MASK_3] TEXT NOT NULL,\n    \"labresult\" REAL NOT NULL,\n    \"labresulttime\" TEXT NOT NULL,\n    FOREIGN KEY(\"patientunitstayid\") REFERENCES \"patient\"(\"patientunitstayid\")\n);\n\nThe CREATE TABLE statement above hides one column name as [MASK_3]. Write the exact hidden column name.\n[MASK_3] =",
+      "max_new_tokens": 16
+    },
+    {
+      "job_id": "dc:eicu:star:lab:2|gen",
+      "system": "Answer with the exact hidden column name only.",
+      "prompt": "CREATE TABLE lab (\n    lab_id INT NOT NULL PRIMARY KEY,\n    unit_id INT NOT NULL,\n    [MASK_3] TEXT NOT NULL,\n    lab_result REAL NOT NULL,\n    lab_result_time TEXT NOT NULL,\n    FOREIGN KEY(unit_id) REFERENCES icupatient(unit_id)\n);\n\nThe CREATE TABLE statement above hides one column name as [MASK_3]. Write the exact hidden column name.\n[MASK_3] =",
+      "max_new_tokens": 16
+    },
+    {
+      "job_id": "dc:eicu:original:microlab:2|gen",
+      "system": "Answer with the exact hidden column name only.",
+      "prompt": "CREATE TABLE \"microlab\" (\n    \"microlabid\" INT NOT NULL PRIMARY KEY,\n    \"patientunitstayid\" INT NOT NULL,\n    [MASK_3] TEXT NOT NULL,\n    organism TEXT NOT NULL,\n    \"culturetakentime\" TEXT NOT NULL,\n    FOREIGN KEY(\"patientunitstayid\") REFERENCES \"patient\"(\"patientunitstayid\")\n);\n\nThe CREATE TABLE statement above hides one column name as [MASK_3]. Write the exact hidden column name.\n[MASK_3] =",
+      "max_new_tokens": 16
+    },
+    {
+      "job_id": "dc:eicu:star:microlab:2|gen",
+      "system": "Answer with the exact hidden column name only.",
+      "prompt": "CREATE TABLE microbiology (\n    microbiology_id INT NOT NULL PRIMARY KEY,\n    unit_id INT NOT NULL,\n    [MASK_3] TEXT NOT NULL,\n    organism TEXT NOT NULL,\n    culture_taken_time TEXT NOT NULL,\n    FOREIGN KEY(unit_id) REFERENCES icupatient(unit_id)\n);\n\nThe CREATE TABLE statement above hides one column name as [MASK_3]. Write the exact hidden column name.\n[MASK_3] =",
+      "max_new_tokens": 16
+    },
+    {
+      "job_id": "dc:eicu:original:medication:2|gen",
+      "system": "Answer with the exact hidden column name only.",
+      "prompt": "CREATE TABLE \"medication\" (\n    \"medicationid\" INT NOT NULL PRIMARY KEY,\n    \"patientunitstayid\" INT NOT NULL,\n    [MASK_3] TEXT NOT NULL,\n    dosage TEXT NOT NULL,\n    \"routeadmin\" TEXT NOT NULL,\n    \"drugstarttime\" TEXT,\n    \"drugstoptime\" TEXT,\n    FOREIGN KEY(\"patientunitstayid\") REFERENCES \"patient\"(\"patientunitstayid\")\n);\n\nThe CREATE TABLE statement above hides one column name as [MASK_3]. Write the exact hidden column name.\n[MASK_3] =",
+      "max_new_tokens": 16
+    },
+    {
+      "job_id": "dc:eicu:star:medication:2|gen",
+      "system": "Answer with the exact hidden column name only.",
+      "prompt": "CREATE TABLE prescription (\n    prescription_id INT NOT NULL PRIMARY KEY,\n    unit_id INT NOT NULL,\n    [MASK_3] TEXT NOT NULL,\n    dosage TEXT NOT NULL,\n    administration_route TEXT NOT NULL,\n    medication_start_time TEXT,\n    medication_stop_time TEXT,\n    FOREIGN KEY(unit_id) REFERENCES icupatient(unit_id)\n);\n\nThe CREATE TABLE statement above hides one column name as [MASK_3]. Write the exact hidden column name.\n[MASK_3] =",
+      "max_new_tokens": 16
+    },
+    {
+      "job_id": "dc:eicu:original:treatment:1|gen",
+      "system": "Answer with the exact hidden column name only.",
+      "prompt": "CREATE TABLE treatment (\n    \"treatmentid\" INT NOT NULL PRIMARY KEY,\n    [MASK_2] INT NOT NULL,\n    \"treatmentname\" TEXT NOT NULL,\n    \"treatmenttime\" TEXT NOT NULL,\n    FOREIGN KEY([MASK_2]) REFERENCES \"patient\"([MASK_2])\n);\n\nThe CREATE TABLE statement above hides one column name as [MASK_2]. Write the exact hidden column name.\n[MASK_2] =",
+      "max_new_tokens": 16
+    },
+    {
+      "job_id": "dc:eicu:star:treatment:1|gen",
+      "system": "Answer with the exact hidden column name only.",
+      "prompt": "CREATE TABLE treatment (\n    treatment_id INT NOT NULL PRIMARY KEY,\n    [MASK_2] INT NOT NULL,\n    treatment_name TEXT NOT NULL,\n    treatment_time TEXT NOT NULL,\n    FOREIGN KEY([MASK_2]) REFERENCES icupatient([MASK_2])\n);\n\nThe CREATE TABLE statement above hides one column name as [MASK_2]. Write the exact hidden column name.\n[MASK_2] =",
+      "max_new_tokens": 16
+    },
+    {
+      "job_id": "dc:eicu:original:vitalperiodic:1|gen",
+      "system": "Answer with the exact hidden column name only.",
+      "prompt": "CREATE TABLE \"vitalperiodic\" (\n    \"vitalperiodicid\" BIGINT NOT NULL PRIMARY KEY,\n    [MASK_2] INT NOT NULL,\n    temperature REAL,\n    sao2 INT,\n    \"heartrate\" INT,\n    \"respiration\" INT,\n    \"systemicsystolic\" INT,\n    \"systemicdiastolic\" INT,\n    \"systemicmean\" INT,\n    \"observationtime\" TEXT NOT NULL,\n    FOREIGN KEY([MASK_2]) REFERENCES \"patient\"([MASK_2])\n);\n\nThe CREATE TABLE statement above hides one column name as [MASK_2]. Write the exact hidden column name.\n[MASK_2] =",
+      "max_new_tokens": 16
+    },
+    {
+      "job_id": "dc:eicu:star:vitalperiodic:1|gen",
+      "system": "Answer with the exact hidden column name only.",
+      "prompt": "CREATE TABLE vital_signs (\n    vital_sign_id BIGINT NOT NULL PRIMARY KEY,\n    [MASK_2] INT NOT NULL,\n    temperature REAL,\n    sao2 INT,\n    heart_rate INT,\n    respiration_rate INT,\n    systolic_bp INT,\n    diastolic_bp INT,\n    mean_bp INT,\n    vital_time TEXT NOT NULL,\n    FOREIGN KEY([MASK_2]) REFERENCES icupatient([MASK_2])\n);\n\nThe CREATE TABLE statement above hides one column name as [MASK_2]. Write the exact hidden column name.\n[MASK_2] =",
+      "max_new_tokens": 16
+    },
+    {
+      "job_id": "dc:eicu:original:vitalperiodic:2|gen",
+      "system": "Answer with the exact hidden column name only.",
+      "prompt": "CREATE TABLE \"vitalperiodic\" (\n    \"vitalperiodicid\" BIGINT NOT NULL PRIMARY KEY,\n    \"patientunitstayid\" INT NOT NULL,\n    [MASK_3] REAL,\n    sao2 INT,\n    \"heartrate\" INT,\n    \"respiration\" INT,\n    \"systemicsystolic\" INT,\n    \"systemicdiastolic\" INT,\n    \"systemicmean\" INT,\n    \"observationtime\" TEXT NOT NULL,\n    FOREIGN KEY(\"patientunitstayid\") REFERENCES \"patient\"(\"patientunitstayid\")\n);\n\nThe CREATE TABLE statement above hides one column name as [MASK_3]. Write the exact hidden column name.\n[MASK_3] =",
+      "max_new_tokens": 16
+    },
+    {
+      "job_id": "dc:eicu:star:vitalperiodic:2|gen",
+      "system": "Answer with the exact hidden column name only.",
+      "prompt": "CREATE TABLE vital_signs (\n    vital_sign_id BIGINT NOT NULL PRIMARY KEY,\n    unit_id INT NOT NULL,\n    [MASK_3] REAL,\n    sao2 INT,\n    heart_rate INT,\n    respiration_rate INT,\n    systolic_bp INT,\n    diastolic_bp INT,\n    mean_bp INT,\n    vital_time TEXT NOT NULL,\n    FOREIGN KEY(unit_id) REFERENCES icupatient(unit_id)\n);\n\nThe CREATE TABLE statement above hides one column name as [MASK_3]. Write the exact hidden column name.\n[MASK_3] =",
+      "max_new_tokens": 16
+    }
+  ]
+}

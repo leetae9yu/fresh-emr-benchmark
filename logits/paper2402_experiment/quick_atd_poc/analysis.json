@@ -1,0 +1,277 @@
+{
+  "summary": {
+    "primary": {
+      "original_full": {
+        "correct": 0,
+        "executable": 6,
+        "total": 7
+      },
+      "original_atd": {
+        "correct": 0,
+        "executable": 3,
+        "total": 7
+      },
+      "star_full": {
+        "correct": 0,
+        "executable": 4,
+        "total": 7
+      },
+      "star_atd": {
+        "correct": 0,
+        "executable": 4,
+        "total": 7
+      }
+    },
+    "all": {
+      "original_full": {
+        "correct": 1,
+        "executable": 7,
+        "total": 8
+      },
+      "original_atd": {
+        "correct": 0,
+        "executable": 4,
+        "total": 8
+      },
+      "star_full": {
+        "correct": 0,
+        "executable": 5,
+        "total": 8
+      },
+      "star_atd": {
+        "correct": 0,
+        "executable": 5,
+        "total": 8
+      }
+    }
+  },
+  "excluded_from_primary": [
+    "eicu:42"
+  ],
+  "rows": [
+    {
+      "job_id": "mimic_iv:6:star:full",
+      "sql": "SELECT COUNT(DISTINCT patientid) AS num_patients\nFROM admissiondiagnoses\nJOIN hospitaladmissions ON admissiondiagnoses.admissionid = hospitaladmissions.admissionid\nWHERE STRFTIME('%d', STRFTIME('%Y-%m-%d', admissiondiagnoses.recordeddatetime)) >= STRFTIME('%d', STRFTIME('%Y-%m-%d', CURRENT_DATE)) - 90\nAND admissiondiagnoses.icdcode IN (\n    SELECT icdcode\n    FROM diagnosiscodes\n    WHERE icdcode LIKE 'C00%' -- Breast cancer ICD-10 codes\n);",
+      "error": "ambiguous column name: patientid",
+      "executable": false,
+      "correct": false
+    },
+    {
+      "job_id": "mimic_iv:6:star:atd",
+      "sql": "SELECT COUNT(DISTINCT patientid) AS num_patients\nFROM hospitaladmissions\nJOIN admissiondiagnoses ON hospitaladmissions.recordid = admissiondiagnoses.recordid\nJOIN diagnosiscodes ON admissiondiagnoses.icdcode = diagnosiscodes.icdcode\nWHERE admissiondiagnoses.recordid IN (\n    SELECT recordid\n    FROM admissiondiagnoses\n    WHERE recordeddatetime >= DATE('now', '-90 days')\n) AND diagnosiscodes.icdcode = 'C50'",
+      "error": "ambiguous column name: patientid",
+      "executable": false,
+      "correct": false
+    },
+    {
+      "job_id": "mimic_iv:6:original:full",
+      "sql": "SELECT COUNT(DISTINCT a.row_id) AS num_patients_with_breast_cancer\nFROM admissions a\nJOIN diagnoses_icd d ON a.hadm_id = d.hadm_id\nJOIN d_icd_diagnoses i ON d.icd_code = i.icd_code\nWHERE i.long_title LIKE '%breast cancer%' AND a.admittime >= DATE('now', '-90 days');",
+      "error": null,
+      "executable": true,
+      "correct": false
+    },
+    {
+      "job_id": "mimic_iv:6:original:atd",
+      "sql": null,
+      "error": "Response is not valid SQLite",
+      "executable": false,
+      "correct": false
+    },
+    {
+      "job_id": "mimic_iv:9:star:full",
+      "sql": "SELECT MIN(recordeddatetime) AS first_diagnosis_date\nFROM admissiondiagnoses\nWHERE patientid = 10020786 AND icdcode = 'J44.1' AND codeversion = 1;",
+      "error": null,
+      "executable": true,
+      "correct": false
+    },
+    {
+      "job_id": "mimic_iv:9:star:atd",
+      "sql": "SELECT DISTINCT d.recordid, d.admissionid, d.recordeddatetime\nFROM diagnosiscodes d\nJOIN admissiondiagnoses ad ON d.recordid = ad.recordid\nWHERE d.icdcode = 'ICD9-CM:469.1' AND ad.patientid = 10020786\nORDER BY d.recordeddatetime ASC\nLIMIT 1;",
+      "error": "no such column: d.admissionid",
+      "executable": false,
+      "correct": false
+    },
+    {
+      "job_id": "mimic_iv:9:original:full",
+      "sql": "SELECT MIN(charttime) AS first_diagnosis_date\nFROM diagnoses_icd\nJOIN admissions ON diagnoses_icd.hadm_id = admissions.hadm_id\nJOIN d_icd_diagnoses ON diagnoses_icd.icd_code = d_icd_diagnoses.icd_code\nWHERE subject_id = 10020786 AND long_title = 'COPD';",
+      "error": "ambiguous column name: subject_id",
+      "executable": false,
+      "correct": false
+    },
+    {
+      "job_id": "mimic_iv:9:original:atd",
+      "sql": "SELECT MIN(charttime) AS first_diagnosis_date\nFROM diagnoses_icd\nJOIN d_icd_diagnoses ON diagnoses_icd.icd_code = d_icd_diagnoses.icd_code\nWHERE subject_id = 10020786 AND icd_code = 'COPD'",
+      "error": "ambiguous column name: icd_code",
+      "executable": false,
+      "correct": false
+    },
+    {
+      "job_id": "mimic_iv:10:star:full",
+      "sql": null,
+      "error": "Response is not valid SQLite",
+      "executable": false,
+      "correct": false
+    },
+    {
+      "job_id": "mimic_iv:10:star:atd",
+      "sql": "SELECT DISTINCT T1.recordid, T1.recordeddatetime\nFROM admissionprocedures AS T1\nJOIN hospitaladmissions AS T2 ON T1.patientid = T2.patientid\nJOIN procedurecodes AS T3 ON T1.icdcode = T3.icdcode\nWHERE T1.patientid = 10014729 AND T3.description LIKE '%resection%'",
+      "error": null,
+      "executable": true,
+      "correct": false
+    },
+    {
+      "job_id": "mimic_iv:10:original:full",
+      "sql": "SELECT DISTINCT d_icd_procedures.icd_code, d_icd_procedures.long_title\nFROM procedures_icd\nJOIN admissions ON procedures_icd.hadm_id = admissions.hadm_id\nJOIN d_icd_procedures ON procedures_icd.icd_code = d_icd_procedures.icd_code\nWHERE admissions.subject_id = 10014729 AND d_icd_procedures.long_title LIKE '%resection%'",
+      "error": null,
+      "executable": true,
+      "correct": false
+    },
+    {
+      "job_id": "mimic_iv:10:original:atd",
+      "sql": "SELECT DISTINCT d_icd_procedures.icd_code, d_icd_procedures.charttime\nFROM admissions\nJOIN d_icd_procedures ON admissions.hadm_id = d_icd_procedures.hadm_id\nWHERE admissions.subject_id = 10014729 AND d_icd_procedures.icd_code LIKE '%resection%'",
+      "error": "no such column: d_icd_procedures.charttime",
+      "executable": false,
+      "correct": false
+    },
+    {
+      "job_id": "mimic_iv:46:star:full",
+      "sql": "SELECT lr.resultvalue\nFROM labresults lr\nJOIN hospitaladmissions ha ON lr.admissionid = ha.admissionid\nWHERE ha.patientid = 10008287 AND ha.admissionid = (SELECT MAX(admissionid) FROM hospitaladmissions WHERE patientid = 10008287)",
+      "error": null,
+      "executable": true,
+      "correct": false
+    },
+    {
+      "job_id": "mimic_iv:46:star:atd",
+      "sql": "SELECT lr.resultvalue\nFROM labresults lr\nJOIN labtesttypes lt ON lr.itemcode = lt.itemcode\nJOIN hospitaladmissions ha ON lr.patientid = ha.patientid\nWHERE ha.patientid = 10008287 AND ha.admissionid = (SELECT MAX(admissionid) FROM hospitaladmissions WHERE patientid = 10008287)",
+      "error": null,
+      "executable": true,
+      "correct": false
+    },
+    {
+      "job_id": "mimic_iv:46:original:full",
+      "sql": "SELECT DISTINCT l.valuenum\nFROM labevents l\nJOIN admissions a ON l.hadm_id = a.hadm_id\nWHERE a.subject_id = 10008287\nORDER BY l.charttime DESC\nLIMIT 1;",
+      "error": null,
+      "executable": true,
+      "correct": false
+    },
+    {
+      "job_id": "mimic_iv:46:original:atd",
+      "sql": "SELECT DISTINCT l.*\nFROM labevents l\nJOIN admissions a ON l.subject_id = a.subject_id\nWHERE a.subject_id = 10008287\nORDER BY l.charttime DESC\nLIMIT 1;",
+      "error": null,
+      "executable": true,
+      "correct": false
+    },
+    {
+      "job_id": "eicu:0:star:full",
+      "sql": "SELECT DISTINCT T1.lab_result_time\nFROM icupatient AS T1\nJOIN lab AS T2 ON T1.unit_id = T2.unit_id\nWHERE T1.patient_id = '027-100559' AND T2.lab_name = 'Lipase' AND T2.lab_result >= 180\nORDER BY T1.hospital_discharge_time DESC;",
+      "error": "no such column: T1.lab_result_time",
+      "executable": false,
+      "correct": false
+    },
+    {
+      "job_id": "eicu:0:star:atd",
+      "sql": "SELECT DISTINCT T1.lab_result_time\nFROM icupatient AS T1\nJOIN lab AS T2 ON T1.unit_id = T2.unit_id\nWHERE T1.patient_id = '027-100559' AND T2.lab_name = 'Lipase' AND T2.lab_result >= 180\nORDER BY T1.hospital_discharge_time DESC;",
+      "error": "no such column: T1.lab_result_time",
+      "executable": false,
+      "correct": false
+    },
+    {
+      "job_id": "eicu:0:original:full",
+      "sql": "SELECT DISTINCT T1.labresulttime\nFROM lab AS T1\nJOIN patient AS T2 ON T1.patientunitstayid = T2.patientunitstayid\nWHERE T2.uniquepid = '027-100559'\n  AND T1.labname = 'Lipase'\n  AND T1.labresult > 180\nORDER BY T1.labresulttime DESC\nLIMIT 1;",
+      "error": null,
+      "executable": true,
+      "correct": false
+    },
+    {
+      "job_id": "eicu:0:original:atd",
+      "sql": "SELECT DISTINCT T2.labresulttime\nFROM lab AS T1\nJOIN patient AS T2 ON T1.patientunitstayid = T2.patientunitstayid\nWHERE T2.uniquepid = '027-100559'\n  AND T1.labname = 'Lipase'\n  AND T1.labresult > 180\nORDER BY T1.labresulttime DESC\nLIMIT 1;",
+      "error": "no such column: T2.labresulttime",
+      "executable": false,
+      "correct": false
+    },
+    {
+      "job_id": "eicu:8:star:full",
+      "sql": "SELECT c.condition_name, c.condition_time\nFROM condition c\nJOIN icupatient i ON c.unit_id = i.unit_id\nWHERE i.patient_id = '017-100143' AND c.condition_name LIKE '%acute pulmonary edema%';",
+      "error": null,
+      "executable": true,
+      "correct": false
+    },
+    {
+      "job_id": "eicu:8:star:atd",
+      "sql": "SELECT c.condition_name, c.condition_time\nFROM condition c\nJOIN icupatient i ON c.unit_id = i.unit_id\nWHERE i.patient_id = '017-100143' AND c.condition_name LIKE '%acute pulmonary edema%';",
+      "error": null,
+      "executable": true,
+      "correct": false
+    },
+    {
+      "job_id": "eicu:8:original:full",
+      "sql": "SELECT \n    d.diagnosisname AS diagnosis_name,\n    d.diagnosistime AS diagnosis_time\nFROM \n    diagnosis d\nJOIN \n    patient p ON d.patientunitstayid = p.patientunitstayid\nWHERE \n    p.uniquepid = '017-100143' AND \n    d.diagnosisname LIKE '%acute pulmonary edema%';",
+      "error": null,
+      "executable": true,
+      "correct": false
+    },
+    {
+      "job_id": "eicu:8:original:atd",
+      "sql": "SELECT \n    d.diagnosisname AS diagnosis,\n    d.diagnosistime AS diagnosis_time\nFROM \n    diagnosis d\nJOIN \n    patient p ON d.patientunitstayid = p.patientunitstayid\nWHERE \n    p.uniquepid = '017-100143' AND \n    d.diagnosisname LIKE '%acute pulmonary edema%';",
+      "error": null,
+      "executable": true,
+      "correct": false
+    },
+    {
+      "job_id": "eicu:9:star:full",
+      "sql": "SELECT \n    t.treatment_name,\n    MAX(ih.hospital_discharge_time) AS latest_discharge_time\nFROM \n    icupatient ih\nJOIN \n    treatment t ON ih.unit_id = t.unit_id\nWHERE \n    ih.patient_id = '007-10050'\nGROUP BY \n    t.treatment_name;",
+      "error": null,
+      "executable": true,
+      "correct": false
+    },
+    {
+      "job_id": "eicu:9:star:atd",
+      "sql": "SELECT \n    t.treatment_name,\n    MAX(ih.hospital_discharge_time) AS latest_time\nFROM \n    icupatient ih\nJOIN \n    treatment t ON ih.unit_id = t.unit_id\nWHERE \n    ih.patient_id = '007-10050'\nGROUP BY \n    t.treatment_name;",
+      "error": null,
+      "executable": true,
+      "correct": false
+    },
+    {
+      "job_id": "eicu:9:original:full",
+      "sql": "SELECT \n    t.treatmentname AS treatment_name,\n    MAX(t.treatmenttime) AS latest_time\nFROM \n    patient p\nJOIN \n    treatment t ON p.patientunitstayid = t.patientunitstayid\nWHERE \n    p.uniquepid = '007-10050' AND \n    t.treatmentname = 'chest x-ray'\nGROUP BY \n    t.treatmentname;",
+      "error": null,
+      "executable": true,
+      "correct": false
+    },
+    {
+      "job_id": "eicu:9:original:atd",
+      "sql": "SELECT \n    t.treatmentname AS treatment_name,\n    MAX(t.treatmenttime) AS latest_time\nFROM \n    patient p\nJOIN \n    treatment t ON p.patientunitstayid = t.patientunitstayid\nWHERE \n    p.uniquepid = '007-10050' AND \n    t.treatmentname = 'chest x-ray'\nGROUP BY \n    t.treatmentname;",
+      "error": null,
+      "executable": true,
+      "correct": false
+    },
+    {
+      "job_id": "eicu:42:star:full",
+      "sql": "SELECT DISTINCT T2.lab_name, T2.lab_result\nFROM icupatient AS T1\nJOIN lab AS T2 ON T1.unit_id = T2.unit_id\nWHERE T1.patient_id = '027-101455' AND T1.hospital_admission_source = 'First Admission'\nORDER BY T1.hospital_admission_source, T1.hospital_admit_time\nLIMIT 1;",
+      "error": null,
+      "executable": true,
+      "correct": false
+    },
+    {
+      "job_id": "eicu:42:star:atd",
+      "sql": "SELECT DISTINCT T2.lab_name, T2.lab_result\nFROM icupatient AS T1\nJOIN lab AS T2 ON T1.unit_id = T2.unit_id\nWHERE T1.patient_id = '027-101455' AND T1.hospital_admission_source = 'First Admission'\nORDER BY T1.hospital_admission_source, T1.hospital_admit_time\nLIMIT 1;",
+      "error": null,
+      "executable": true,
+      "correct": false
+    },
+    {
+      "job_id": "eicu:42:original:full",
+      "sql": "SELECT \n    labresult\nFROM \n    lab\nWHERE \n    patientunitstayid = (\n        SELECT \n            patientunitstayid\n        FROM \n            patient\n        WHERE \n            uniquepid = '027-101455'\n    )\n    AND labname = 'wbc x 1000'",
+      "error": null,
+      "executable": true,
+      "correct": true
+    },
+    {
+      "job_id": "eicu:42:original:atd",
+      "sql": "SELECT \n    \"labresult\" AS wbc_x_1000\nFROM \n    lab\nWHERE \n    \"patientunitstayid\" = (\n        SELECT \n            \"patientunitstayid\"\n        FROM \n            patient\n        WHERE \n            \"uniquepid\" = '027-101455'\n    )\n    AND \"labname\" = 'WBC'\n    AND \"labresulttime\" = (\n        SELECT \n            MIN(\"labresulttime\")\n        FROM \n            lab\n        WHERE \n            \"patientunitstayid\" = (\n                SELECT \n                    \"patientunitstayid\"\n                FROM \n                    patient\n                WHERE \n                    \"uniquepid\" = '027-101455'\n            )\n    );",
+      "error": null,
+      "executable": true,
+      "correct": false
+    }
+  ]
+}
